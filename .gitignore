@@ -1,0 +1,11 @@
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+.kotlin/
+captures/
+*.keystore
+*.jks
+# Reference copy of the community data file, used only by a local test
+refdata/

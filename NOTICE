@@ -1,0 +1,16 @@
+TrackCats
+An unofficial fan-made seed tracker for The Battle Cats. Not affiliated with or endorsed by PONOS.
+
+This app includes a Kotlin port of roll-simulation and seed-search logic from:
+
+  battle-cats-rolls by godfat (Lin Jen-Shin) and contributors
+  https://gitlab.com/godfat/battle-cats-rolls
+  Licensed under the Apache License, Version 2.0
+  http://www.apache.org/licenses/LICENSE-2.0
+
+The ported parts are app/src/main/java/com/trackcats/app/core/Engine.kt and SeedFinder.kt
+(the seed search follows the approach of Seeker-VampireFlower.c in that project).
+
+Banner and cat data (app/src/main/assets/gamedata.json, and the file the app downloads at
+runtime) are derived from that project's build/bc-en.yaml. Cat names, banner names and game
+data belong to PONOS.
