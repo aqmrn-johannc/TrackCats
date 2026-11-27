@@ -62,6 +62,8 @@ fun CatsScreen(vm: AppVm) {
     var pickingSet by remember { mutableStateOf(false) }
     /** Pending bulk change waiting for confirmation: true marks owned, false unmarks. */
     var bulk by remember { mutableStateOf<Boolean?>(null) }
+    var importing by remember { mutableStateOf(false) }
+    var imported by remember { mutableStateOf<Int?>(null) }
     val all = game.gachaCats
     val sets = remember(game) { Sets.all(context, game) }
     val chosenSet = sets.firstOrNull { it.name == setName }
@@ -94,6 +96,10 @@ fun CatsScreen(vm: AppVm) {
             }
             return@LazyColumn
         }
+        item {
+            OutlinedButton(onClick = { imported = null; importing = true }, modifier = Modifier.fillMaxWidth()) { Text("Import from Cat Guide screenshots") }
+        }
+        imported?.let { n -> item { SectionCard(highlight = true) { Text("Marked ${plural(n, "cat")} as owned from your Cat Guide screenshots.") } } }
         item { SearchField(query, { query = it }, "Search cats", Modifier.padding(top = 8.dp)) }
         item {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -150,6 +156,14 @@ fun CatsScreen(vm: AppVm) {
         }
     }
 
+    if (importing) GuideImportDialog(game, user.owned) { picked ->
+        if (picked != null) {
+            val fresh = picked - user.owned
+            vm.update { u -> u.copy(owned = u.owned + picked) }
+            imported = fresh.size
+        }
+        importing = false
+    }
     if (pickingSet) AlertDialog(
         onDismissRequest = { pickingSet = false },
         title = { Text("Show cats from which set?") },

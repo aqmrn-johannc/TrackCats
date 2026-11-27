@@ -2,6 +2,11 @@
 
 The same notes appear inside the app under More, then "What's new".
 
+## 1.0.4 (2026-11-27)
+
+- **Import from Cat Guide**: on My cats, tap "Import from Cat Guide screenshots" and pick screenshots of the game's Cat Guide. TrackCats recognises the icons (any form) and ticks those cats as owned. You review the list before anything changes. The first import downloads the pictures of every form to compare with, which takes a minute or two; later imports are quick.
+- **Ultra forms**: cat details now show the fourth form of cats that have one.
+
 ## 1.0.3 (2026-11-27)
 
 - **Banner calendar**: on the Banners tab, switch to Calendar to see open and upcoming banners week by week, with their set name, dates, guaranteed draws, your wishlist cats and how many ubers are new for you.

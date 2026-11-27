@@ -6,6 +6,13 @@ class Release(val code: Int, val name: String, val date: String, val changes: Li
 object Changelog {
     val releases = listOf(
         Release(
+            5, "1.0.4", "2026-11-27",
+            listOf(
+                "Import from Cat Guide: on My cats, pick screenshots of the game's Cat Guide and TrackCats recognises the icons and ticks those cats for you. You review the list before anything changes.",
+                "Ultra forms: cat details now show the fourth form of cats that have one.",
+            ),
+        ),
+        Release(
             4, "1.0.3", "2026-11-27",
             listOf(
                 "Banner calendar: on the Banners tab, switch to Calendar to see open and upcoming banners week by week, with guaranteed draws, your wishlist cats and how many ubers are new for you.",

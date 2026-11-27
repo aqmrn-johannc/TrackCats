@@ -71,12 +71,14 @@ fun CatDetailDialog(vm: AppVm, id: Int, onDismiss: () -> Unit) {
         text = {
             Column(Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // Forms, first to last.
-                val forms = info?.n.orEmpty().take(3)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val forms = info?.n.orEmpty().take(4)
+                // Four forms (cats with an ultra form) use smaller pictures so they fit on one line.
+                val size = if (forms.size > 3) 60.dp else 80.dp
+                Row(horizontalArrangement = Arrangement.spacedBy(if (forms.size > 3) 4.dp else 8.dp)) {
                     forms.forEachIndexed { i, name ->
-                        Column(Modifier.width(84.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            CatIcon(id, game, width = 80.dp, form = i)
-                            Text(name, style = MaterialTheme.typography.labelSmall, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                        Column(Modifier.width(size + 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            CatIcon(id, game, width = size, form = i)
+                            Text(name, style = MaterialTheme.typography.labelSmall, maxLines = 3, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                         }
                     }
                 }

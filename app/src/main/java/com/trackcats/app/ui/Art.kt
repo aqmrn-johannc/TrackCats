@@ -54,8 +54,8 @@ object Art {
     private const val FILE_URL = "https://battlecats.miraheze.org/wiki/Special:FilePath/"
     private const val USER_AGENT = "TrackCats/1 (Android fan app; cached image viewer)"
 
-    /** Icon of a cat's form (0 first, 1 evolved, 2 true). Wiki files are numbered from 0, the game data from 1. */
-    fun catUrl(id: Int, form: Int = 0): String = FILE_URL + "Uni%03d_%s00.png".format(id - 1, "fcs"[form.coerceIn(0, 2)])
+    /** Icon of a cat's form (0 first, 1 evolved, 2 true, 3 ultra). Wiki files are numbered from 0, the game data from 1. */
+    fun catUrl(id: Int, form: Int = 0): String = FILE_URL + "Uni%03d_%s00.png".format(id - 1, "fcsu"[form.coerceIn(0, 3)])
 
     private var bannerFiles: Map<Int, String>? = null
 
