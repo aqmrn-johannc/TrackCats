@@ -47,6 +47,8 @@ data class UserState(
     val notified: Set<String> = emptySet(),
     /** versionCode whose "What's new" page this player has already seen. */
     val lastSeenVersion: Int = 0,
+    /** Accent colour chosen by the player (ARGB), or null for the standard orange. */
+    val themeColor: Int? = null,
 ) {
     val seedInt: Int? get() = seed?.toInt()
 }

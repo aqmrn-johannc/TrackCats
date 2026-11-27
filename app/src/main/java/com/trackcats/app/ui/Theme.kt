@@ -6,6 +6,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Text
@@ -14,11 +15,14 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -34,61 +38,81 @@ import com.trackcats.app.R
 import com.trackcats.app.core.Rarity
 
 val Ink = Color(0xFF1B1F2A)
-val Orange = Color(0xFFE8590C)
 val Amber = Color(0xFFFFB627)
 
 /** Chunky display lettering (Lilita One, SIL Open Font License) for titles, buttons and big results. */
 val GameFont = FontFamily(Font(R.font.lilita_one))
 
-private val Light = lightColorScheme(
-    primary = Orange,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFFFE2C7),
-    onPrimaryContainer = Color(0xFF4A1C00),
-    secondary = Color(0xFF1971C2),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFFFF0C2),
-    onSecondaryContainer = Color(0xFF3B2A00),
-    tertiary = Color(0xFF2B8A3E),
-    background = Color(0xFFEAF3FB),
-    onBackground = Ink,
-    surface = Color.White,
-    onSurface = Ink,
-    surfaceVariant = Color(0xFFE7EDF4),
-    onSurfaceVariant = Color(0xFF55606E),
-    surfaceContainerLowest = Color.White,
-    surfaceContainerLow = Color(0xFFF7FAFD),
-    surfaceContainer = Color.White,
-    surfaceContainerHigh = Color(0xFFF7FAFD),
-    surfaceContainerHighest = Color(0xFFEEF3F8),
-    outline = Color(0xFF8A96A6),
-    outlineVariant = Color(0xFFD5DDE7),
-)
+const val DefaultThemeColor = 0xFFE8590C.toInt()
 
-private val Dark = darkColorScheme(
-    primary = Color(0xFFFF9F45),
-    onPrimary = Color(0xFF2B1200),
-    primaryContainer = Color(0xFF5A2D00),
-    onPrimaryContainer = Color(0xFFFFDCC0),
-    secondary = Color(0xFF74B6F2),
-    onSecondary = Color(0xFF002B4D),
-    secondaryContainer = Color(0xFF45380F),
-    onSecondaryContainer = Color(0xFFFFE9A8),
-    tertiary = Color(0xFF69DB7C),
-    background = Color(0xFF0F1420),
-    onBackground = Color(0xFFE6EBF3),
-    surface = Color(0xFF1B2232),
-    onSurface = Color(0xFFE6EBF3),
-    surfaceVariant = Color(0xFF263043),
-    onSurfaceVariant = Color(0xFFB4BFCE),
-    surfaceContainerLowest = Color(0xFF141A27),
-    surfaceContainerLow = Color(0xFF1B2232),
-    surfaceContainer = Color(0xFF1B2232),
-    surfaceContainerHigh = Color(0xFF222B3D),
-    surfaceContainerHighest = Color(0xFF2A3447),
-    outline = Color(0xFF6B788C),
-    outlineVariant = Color(0xFF323D52),
-)
+@Composable
+fun isDarkTheme(): Boolean = isSystemInDarkTheme()
+
+/**
+ * Builds the app's colours around one accent colour chosen by the player. The accent is nudged
+ * darker (light theme) or lighter (dark theme) when needed so text in it stays readable.
+ */
+fun schemeFor(accent: Color, dark: Boolean): ColorScheme {
+    val f = FloatArray(3).also { android.graphics.Color.colorToHSV(accent.toArgb(), it) }
+    val h = f[0]
+    val s = f[1]
+    var v = f[2]
+    if (!dark) {
+        while (v > 0.3f && hsv(h, s, v).luminance() > 0.36f) v -= 0.03f
+        val primary = hsv(h, s, v)
+        return lightColorScheme(
+            primary = primary,
+            onPrimary = Color.White,
+            primaryContainer = hsv(h, s * 0.22f, 1f),
+            onPrimaryContainer = hsv(h, s, 0.28f),
+            secondary = Color(0xFF1971C2),
+            onSecondary = Color.White,
+            secondaryContainer = Color(0xFFFFF0C2),
+            onSecondaryContainer = Color(0xFF3B2A00),
+            tertiary = Color(0xFF2B8A3E),
+            background = hsv(h, s * 0.08f, 0.98f),
+            onBackground = Ink,
+            surface = Color.White,
+            onSurface = Ink,
+            surfaceVariant = Color(0xFFE7EDF4),
+            onSurfaceVariant = Color(0xFF55606E),
+            surfaceContainerLowest = Color.White,
+            surfaceContainerLow = Color(0xFFF7FAFD),
+            surfaceContainer = Color.White,
+            surfaceContainerHigh = Color(0xFFF7FAFD),
+            surfaceContainerHighest = Color(0xFFEEF3F8),
+            outline = Color(0xFF8A96A6),
+            outlineVariant = Color(0xFFD5DDE7),
+        )
+    }
+    v = v.coerceAtLeast(0.85f)
+    var sat = s.coerceAtMost(0.75f)
+    while (sat > 0f && hsv(h, sat, v).luminance() < 0.32f) sat -= 0.04f
+    return darkColorScheme(
+        primary = hsv(h, sat, v),
+        onPrimary = hsv(h, s.coerceAtMost(0.8f), 0.16f),
+        primaryContainer = hsv(h, s * 0.8f, 0.34f),
+        onPrimaryContainer = hsv(h, s * 0.25f, 1f),
+        secondary = Color(0xFF74B6F2),
+        onSecondary = Color(0xFF002B4D),
+        secondaryContainer = Color(0xFF45380F),
+        onSecondaryContainer = Color(0xFFFFE9A8),
+        tertiary = Color(0xFF69DB7C),
+        background = Color(0xFF0F1420),
+        onBackground = Color(0xFFE6EBF3),
+        surface = Color(0xFF1B2232),
+        onSurface = Color(0xFFE6EBF3),
+        surfaceVariant = Color(0xFF263043),
+        onSurfaceVariant = Color(0xFFB4BFCE),
+        surfaceContainerLowest = Color(0xFF141A27),
+        surfaceContainerLow = Color(0xFF1B2232),
+        surfaceContainer = Color(0xFF1B2232),
+        surfaceContainerHigh = Color(0xFF222B3D),
+        surfaceContainerHighest = Color(0xFF2A3447),
+        outline = Color(0xFF6B788C),
+        outlineVariant = Color(0xFF323D52),
+    )
+}
 
 private val base = Typography()
 
@@ -111,20 +135,22 @@ private val AppShapes = Shapes(
 )
 
 @Composable
-fun TrackCatsTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = if (isSystemInDarkTheme()) Dark else Light, typography = AppType, shapes = AppShapes, content = content)
+fun TrackCatsTheme(accent: Int? = null, content: @Composable () -> Unit) {
+    val dark = isSystemInDarkTheme()
+    val scheme = remember(accent, dark) { schemeFor(Color(accent ?: DefaultThemeColor), dark) }
+    MaterialTheme(colorScheme = scheme, typography = AppType, shapes = AppShapes, content = content)
 }
-
-/** The colours of the bar across the top of the app. */
-val TopBarBrush = Brush.horizontalGradient(listOf(Color(0xFFFF8A1F), Color(0xFFF2600C), Color(0xFFE0441B)))
 
 /** Soft gradient with a faint dot pattern, drawn behind every screen. */
 @Composable
 fun AppBackground(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
     val dark = isSystemInDarkTheme()
-    val colors = if (dark) listOf(Color(0xFF131B33), Color(0xFF0F1420), Color(0xFF1B1326))
-    else listOf(Color(0xFFD9ECFF), Color(0xFFEFF5FB), Color(0xFFFFEFD9))
-    val dot = if (dark) Color.White.copy(alpha = 0.035f) else Color(0xFF1971C2).copy(alpha = 0.06f)
+    // The background picks up a soft tint of the chosen theme colour.
+    val accent = MaterialTheme.colorScheme.primary
+    val f = remember(accent) { FloatArray(3).also { android.graphics.Color.colorToHSV(accent.toArgb(), it) } }
+    val colors = if (dark) listOf(hsv(f[0], f[1] * 0.55f, 0.20f), Color(0xFF0F1420), hsv(f[0] + 40f, f[1] * 0.45f, 0.15f))
+    else listOf(hsv(f[0], f[1] * 0.20f, 1f), hsv(f[0], f[1] * 0.05f, 0.98f), hsv(f[0] + 40f, f[1] * 0.16f, 1f))
+    val dot = if (dark) Color.White.copy(alpha = 0.035f) else accent.copy(alpha = 0.07f)
     val step = with(LocalDensity.current) { 26.dp.toPx() }
     val radius = with(LocalDensity.current) { 2.5.dp.toPx() }
     Box(modifier.fillMaxSize().background(Brush.verticalGradient(colors))) {

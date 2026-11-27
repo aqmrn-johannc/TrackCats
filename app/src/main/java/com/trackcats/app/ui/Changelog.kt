@@ -6,6 +6,15 @@ class Release(val code: Int, val name: String, val date: String, val changes: Li
 object Changelog {
     val releases = listOf(
         Release(
+            3, "1.0.2", "2026-11-27",
+            listOf(
+                "Rolls tab: the guaranteed-draw card now sits right under the banner, above your next rolls. Banners without one say so.",
+                "Track table: it now lives in a pull-up tab at the bottom of the Rolls tab. Swipe it up (or tap it) to see the full table for your next 100 positions; swipe down to put it away.",
+                "Theme colour: pick any colour for the app with a colour wheel under More, then Display. Buttons, titles and the background tint follow it.",
+                "The TrackCats header bar is gone from every screen, leaving more room for content.",
+            ),
+        ),
+        Release(
             2, "1.0.1", "2026-11-27",
             listOf(
                 "Cat pictures: every cat now shows its icon in roll lists, plans, pickers, history and My cats.",

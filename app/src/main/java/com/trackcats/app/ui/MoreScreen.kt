@@ -1,5 +1,11 @@
 package com.trackcats.app.ui
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideInHorizontally
@@ -57,6 +63,7 @@ fun MoreScreen(vm: AppVm, onFindSeed: () -> Unit, onResync: () -> Unit, onHistor
     val game by vm.game.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var manual by remember { mutableStateOf(false) }
+    var theming by remember { mutableStateOf(false) }
     var notice by remember { mutableStateOf<String?>(null) }
 
     val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -136,8 +143,16 @@ fun MoreScreen(vm: AppVm, onFindSeed: () -> Unit, onResync: () -> Unit, onHistor
         }
 
         SectionCard(title = "Display") {
-            SwitchRow("Advanced view", user.advanced) { on -> vm.update { it.copy(advanced = on) } }
-            Text("Shows track positions (1A, 2B…) on every roll and the full two-track table, for comparing with other seed trackers.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { theming = true }, verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Theme colour", fontWeight = FontWeight.SemiBold)
+                    Text(if (user.themeColor == null) "Standard orange" else "Your own colour", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Box(Modifier.size(36.dp).clip(CircleShape).background(Color(user.themeColor ?: DefaultThemeColor)).border(2.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape))
+            }
+            OutlinedButton(onClick = { theming = true }, modifier = Modifier.fillMaxWidth()) { Text("Change theme colour") }
+            SwitchRow("Track positions on rolls", user.advanced) { on -> vm.update { it.copy(advanced = on) } }
+            Text("Shows the track position (1A, 2B…) next to every roll, for comparing with other seed trackers. The full track table is always in the pull-up tab at the bottom of the Rolls tab.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         SectionCard(title = "Help") {
@@ -154,6 +169,7 @@ fun MoreScreen(vm: AppVm, onFindSeed: () -> Unit, onResync: () -> Unit, onHistor
         }
     }
 
+    if (theming) ThemeColorDialog(user.themeColor, onPick = { c -> vm.update { it.copy(themeColor = c) }; theming = false }, onDismiss = { theming = false })
     if (manual) ManualSeedDialog(user.seed, onSave = { s -> vm.setSeed(s, -1, null, "manual"); manual = false }, onDismiss = { manual = false })
 }
 

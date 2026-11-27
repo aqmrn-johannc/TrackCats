@@ -1,5 +1,21 @@
 package com.trackcats.app.ui
 
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
+import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.BottomSheetScaffold
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.BorderStroke
@@ -65,6 +81,7 @@ fun selectedBanner(game: Game, user: UserState, today: LocalDate): EventInfo? {
     return all.firstOrNull { it.k == user.selectedEvent } ?: all.firstOrNull()
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(vm: AppVm, onFindSeed: () -> Unit, onMismatch: (EventInfo) -> Unit) {
     val user by vm.user.collectAsStateWithLifecycle()
@@ -92,12 +109,36 @@ fun HomeScreen(vm: AppVm, onFindSeed: () -> Unit, onMismatch: (EventInfo) -> Uni
     val rolls = remember(pool, seed, user.lastCat, count) { Roller.simulate(pool, seed, user.lastCat, count) }
     val draw = remember(pool, seed, user.lastCat) { Roller.guaranteedDraw(pool, seed, user.lastCat) }
 
+    val sheet = rememberBottomSheetScaffoldState()
+    val scope = rememberCoroutineScope()
+    val sheetOpen = sheet.bottomSheetState.targetValue == SheetValue.Expanded
+    BackHandler(enabled = sheetOpen) { scope.launch { sheet.bottomSheetState.partialExpand() } }
+
+    // The track table lives in a tab at the bottom edge: swipe it up (or tap it) to open.
+    BottomSheetScaffold(
+        scaffoldState = sheet,
+        sheetPeekHeight = 54.dp,
+        sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        sheetContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+        sheetShadowElevation = 12.dp,
+        sheetDragHandle = {
+            TrackTableHandle(sheetOpen) {
+                scope.launch { if (sheetOpen) sheet.bottomSheetState.partialExpand() else sheet.bottomSheetState.expand() }
+            }
+        },
+        sheetContent = { TrackTableSheet(pool, seed, user.lastCat, game) },
+        containerColor = Color.Transparent,
+    ) { inner ->
     LazyColumn(
-        Modifier.fillMaxSize(),
+        Modifier.fillMaxSize().padding(inner),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item { BannerHeader(event, game, today) { picking = true } }
+        item {
+            if (draw != null) GuaranteedPreview(pool, draw, game, valuer, user)
+            else SectionCard(title = "Guaranteed uber") { Text("This banner doesn't have a guaranteed uber.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
         if (!user.seedConfirmed) item {
             SectionCard(highlight = true) {
                 Text("Seed not confirmed yet", fontWeight = FontWeight.Bold)
@@ -118,8 +159,7 @@ fun HomeScreen(vm: AppVm, onFindSeed: () -> Unit, onMismatch: (EventInfo) -> Uni
                 Text("Show more rolls")
             }
         }
-        if (draw != null) item { GuaranteedPreview(pool, draw, game, valuer, user) }
-        if (user.advanced) item { TrackTableCard(pool, seed, user.lastCat, game, minOf(count, 60)) }
+    }
     }
 
     if (picking) {
@@ -234,22 +274,51 @@ private fun RolledDialog(
     )
 }
 
+/** The always-visible edge of the pull-up tab. */
 @Composable
-private fun TrackTableCard(pool: Pool, seed: Int, last: Int, game: Game, rows: Int) {
-    val table = remember(pool, seed, last, rows) { TrackTable.build(pool, seed, last, rows) }
-    SectionCard(title = "Track table (advanced)") {
-        Text(
-            "The classic two-track view used by other seed trackers. Highlighted cells are the path your rolls follow. \"or\" shows what you get if the same rare cat came just before it.",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        for (row in table) {
+private fun TrackTableHandle(open: Boolean, onToggle: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().clickable(onClickLabel = if (open) "Close track table" else "Open track table", onClick = onToggle).padding(top = 8.dp, bottom = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(Modifier.size(width = 44.dp, height = 5.dp).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.outline))
+        Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(if (open) Icons.Filled.KeyboardArrowDown else Icons.Filled.KeyboardArrowUp, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Text("Track table", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Text(if (open) "  swipe down to close" else "  swipe up", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** The full two-track table, shown when the tab is pulled up. */
+@Composable
+private fun TrackTableSheet(pool: Pool, seed: Int, last: Int, game: Game) {
+    val table = remember(pool, seed, last) { TrackTable.build(pool, seed, last, 100) }
+    LazyColumn(
+        Modifier.fillMaxWidth().fillMaxHeight(0.88f),
+        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        item {
+            Text(
+                "The classic two-track view used by other seed trackers, for your next 100 positions. Highlighted cells are the path your rolls follow. \"or\" shows what you get if the same rare cat came just before it.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        item {
+            Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Spacer(Modifier.width(26.dp))
+                Text("Track A", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                Text("Track B", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+            }
+        }
+        items(table, key = { it.index }) { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("${row.index}", Modifier.width(26.dp), style = MaterialTheme.typography.labelMedium)
                 TrackCellView(row.a, game, Modifier.weight(1f))
                 TrackCellView(row.b, game, Modifier.weight(1f))
             }
         }
-        Spacer(Modifier.height(2.dp))
     }
 }
 
@@ -258,7 +327,7 @@ private fun TrackCellView(cell: TrackCell, game: Game, modifier: Modifier) {
     Column(
         modifier
             .clip(RoundedCornerShape(6.dp))
-            .background(if (cell.onPath) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)
+            .background(if (cell.onPath) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest)
             .padding(horizontal = 6.dp, vertical = 3.dp),
     ) {
         Text(

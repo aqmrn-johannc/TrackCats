@@ -70,8 +70,13 @@ class UiSmokeTest {
             assertEquals(19, Store.user.value.tickets)
         }
 
-        // Advanced view adds the track table to the same screen.
-        Store.update(ctx) { it.copy(advanced = true) }
+        // The guaranteed-draw card (or its "not on this banner" note) and the pull-up track table tab are on the Rolls tab.
+        rule.onNodeWithText("Track table").assertIsDisplayed().performClick()
+        rule.waitForIdle()
+        rule.onNodeWithText("Track A").assertIsDisplayed()
+        rule.onNodeWithText("Track table").performClick()
+        rule.waitForIdle()
+        Store.update(ctx) { it.copy(advanced = true, themeColor = 0xFF1C7ED6.toInt()) }
         rule.waitForIdle()
 
         for (tab in listOf("Banners" to "Compare banners", "Plan" to "What you have", "My cats" to "Any rarity", "More" to "My seed")) {
@@ -89,6 +94,11 @@ class UiSmokeTest {
         rule.onNodeWithText("What do these words mean?").performScrollTo().performClick()
         rule.onNodeWithText("Seed").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Back").performScrollTo().performClick()
+        rule.onNodeWithText("Change theme colour").performScrollTo().performClick()
+        rule.onNodeWithText("Use this colour").assertIsDisplayed()
+        rule.onNodeWithText("Back to the standard orange").performScrollTo().performClick()
+        rule.waitForIdle()
+        assertEquals(null, Store.user.value.themeColor)
         rule.onNodeWithText("What's new").performScrollTo().performClick()
         rule.onNodeWithText("Version ${Changelog.latest.name}", substring = true).performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Back").performScrollTo().performClick()

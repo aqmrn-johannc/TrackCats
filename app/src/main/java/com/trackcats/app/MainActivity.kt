@@ -1,5 +1,6 @@
 package com.trackcats.app
 
+import com.trackcats.app.data.Store
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -37,8 +38,6 @@ import coil.imageLoader
 import com.trackcats.app.ui.AppBackground
 import com.trackcats.app.ui.Art
 import com.trackcats.app.ui.Changelog
-import com.trackcats.app.ui.OutlinedText
-import com.trackcats.app.ui.TopBarBrush
 import com.trackcats.app.ui.WhatsNewScreen
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -82,7 +81,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { TrackCatsTheme { TrackCatsRoot() } }
+        setContent {
+            val user by Store.user.collectAsStateWithLifecycle()
+            TrackCatsTheme(user.themeColor) { TrackCatsRoot() }
+        }
     }
 }
 
@@ -127,11 +129,6 @@ fun TrackCatsRoot(vm: AppVm = viewModel()) {
     AppBackground {
         Scaffold(
             containerColor = Color.Transparent,
-            topBar = {
-                Box(Modifier.fillMaxWidth().background(TopBarBrush).statusBarsPadding().padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
-                    OutlinedText("TrackCats", MaterialTheme.typography.headlineSmall, fill = Color(0xFFFFE066), outline = Color(0xFF3A1A08), outlineWidth = 4.dp)
-                }
-            },
             bottomBar = {
                 if (page.isEmpty()) NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
                     for (t in tabs) NavigationBarItem(

@@ -13,8 +13,8 @@ android {
         applicationId = "com.trackcats.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.0.2"
         // Every current Android phone is 64-bit ARM; shipping one ABI keeps the APK small.
         ndk { abiFilters += "arm64-v8a" }
     }

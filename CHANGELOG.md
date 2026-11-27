@@ -2,6 +2,14 @@
 
 The same notes appear inside the app under More, then "What's new".
 
+## 1.0.2 (2026-11-27)
+
+- **Rolls tab**: the guaranteed-draw card now sits right under the banner, above your next rolls. Banners without one say "This banner doesn't have a guaranteed uber."
+- **Track table**: it now lives in a pull-up tab at the bottom of the Rolls tab instead of a card at the end of the list. Swipe it up (or tap it) to see the full table for your next 100 positions; swipe down to put it away.
+- **Theme colour**: pick any colour for the app with a colour wheel under More, then Display. Buttons, titles and the background tint follow it, and it is adjusted slightly when needed so text stays readable.
+- **Header removed**: the TrackCats bar at the top of every screen is gone, leaving more room for content.
+- The "Advanced view" switch is now "Track positions on rolls"; the track table no longer depends on it.
+
 ## 1.0.1 (2026-11-27)
 
 - **Cat pictures**: every cat now shows its icon in roll lists, plans, pickers, history and My cats.
