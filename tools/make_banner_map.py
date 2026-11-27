@@ -75,7 +75,8 @@ def main(data_path, out_path):
     # For the rest, borrow the banner of the wiki's page for the same set: the page whose
     # cat icons overlap this pool's uber and legend rares the most.
     missing = [g for g in wanted if g not in result]
-    if missing:
+    names = {}
+    if True:
         pages = [p["title"] for p in paged("categorymembers", action="query", list="categorymembers",
                                            cmtitle="Category:Gacha Event", cmlimit=500) if "/" not in p["title"]]
         sets = []
@@ -96,7 +97,18 @@ def main(data_path, out_path):
             if score >= 0.5:
                 result[g] = f
                 print(f"  {g}: borrowed from {title} ({score:.2f})")
+        # Set names (for example "THE DYNAMITES") come from the title of the best-matching wiki page.
+        for g in wanted:
+            mine = ubers(g)
+            if not mine:
+                continue
+            score, title = max(((len(mine & ids) / len(mine | ids), t) for t, f, ids in sets), default=(0, ""))
+            if score >= 0.5:
+                names[g] = re.sub(r"\s*\((Gacha Event|Event Gacha|Removed Gacha Event)\)\s*$", "", title)
     json.dump({str(k): v for k, v in sorted(result.items())}, open(out_path, "w", encoding="utf-8"), separators=(",", ":"))
+    json.dump({str(k): v for k, v in sorted(names.items())}, open(out_path.replace("banner_art", "banner_names"), "w", encoding="utf-8"),
+              ensure_ascii=False, separators=(",", ":"))
+    print(f"{len(names)} of {len(wanted)} gacha ids have a set name")
     left = [g for g in wanted if g not in result]
     print(f"{len(result)} of {len(wanted)} gacha ids have banner art; without: {left}")
 

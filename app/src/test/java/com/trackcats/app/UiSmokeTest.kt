@@ -70,6 +70,14 @@ class UiSmokeTest {
             assertEquals(19, Store.user.value.tickets)
         }
 
+        // Tapping a cat opens its details.
+        if (banner != null) {
+            val next = Roller.rollOne(game.pool(banner), Store.user.value.seedInt!!, Store.user.value.lastCat)
+            rule.onAllNodesWithText(game.name(next.catId)).onFirst().performClick()
+            rule.onNodeWithText("Where to get it").assertIsDisplayed()
+            rule.onNodeWithText("Close").performClick()
+            rule.waitForIdle()
+        }
         // The guaranteed-draw card (or its "not on this banner" note) and the pull-up track table tab are on the Rolls tab.
         rule.onNodeWithText("Track table").assertIsDisplayed().performClick()
         rule.waitForIdle()
@@ -77,6 +85,20 @@ class UiSmokeTest {
         rule.onNodeWithText("Track table").performClick()
         rule.waitForIdle()
         Store.update(ctx) { it.copy(advanced = true, themeColor = 0xFF1C7ED6.toInt()) }
+        rule.waitForIdle()
+
+        // Calendar on the Banners tab, set progress on My cats; both return to their default view.
+        rule.onAllNodesWithText("Banners").onFirst().performClick()
+        rule.onNodeWithText("Calendar").performClick()
+        rule.waitForIdle()
+        rule.onAllNodesWithText("Open now").onFirst().assertExists()
+        rule.onNodeWithText("Compare").performClick()
+        rule.onAllNodesWithText("My cats").onFirst().performClick()
+        rule.onNodeWithText("Sets").performClick()
+        rule.waitForIdle()
+        rule.onAllNodesWithText("Ubers ", substring = true).onFirst().assertExists()
+        rule.onNodeWithText("Cats").performClick()
+        rule.onNodeWithText("Mark all ", substring = true).assertExists()
         rule.waitForIdle()
 
         for (tab in listOf("Banners" to "Compare banners", "Plan" to "What you have", "My cats" to "Any rarity", "More" to "My seed")) {
@@ -94,6 +116,9 @@ class UiSmokeTest {
         rule.onNodeWithText("What do these words mean?").performScrollTo().performClick()
         rule.onNodeWithText("Seed").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Back").performScrollTo().performClick()
+        rule.onNodeWithText("Dark").performScrollTo().performClick()
+        rule.waitForIdle()
+        assertEquals("dark", Store.user.value.darkMode)
         rule.onNodeWithText("Change theme colour").performScrollTo().performClick()
         rule.onNodeWithText("Use this colour").assertIsDisplayed()
         rule.onNodeWithText("Back to the standard orange").performScrollTo().performClick()

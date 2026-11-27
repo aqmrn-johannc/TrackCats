@@ -49,6 +49,8 @@ data class UserState(
     val lastSeenVersion: Int = 0,
     /** Accent colour chosen by the player (ARGB), or null for the standard orange. */
     val themeColor: Int? = null,
+    /** "system" follows the phone, or "light" / "dark". */
+    val darkMode: String = "system",
 ) {
     val seedInt: Int? get() = seed?.toInt()
 }

@@ -51,11 +51,11 @@ class AppVm(app: Application) : AndroidViewModel(app) {
     }
 
     /** The player rolled and got exactly what was predicted: advance the seed and mark the cats as owned. */
-    fun applyRolls(event: EventInfo, rolls: List<Roll>, guaranteed: Boolean) {
+    fun applyRolls(event: EventInfo, rolls: List<Roll>, guaranteed: Boolean, markOwned: Boolean = true) {
         if (rolls.isEmpty()) return
         update { u ->
             val ids = rolls.map { it.catId }.filter { it > 0 }
-            val newly = ids.filter { it !in u.owned }.distinct()
+            val newly = if (markOwned) ids.filter { it !in u.owned }.distinct() else emptyList()
             u.copy(
                 seed = Rng.toLong(rolls.last().seedAfter), lastCat = rolls.last().catId, seedConfirmed = true,
                 owned = u.owned + newly,

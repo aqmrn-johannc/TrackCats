@@ -1,5 +1,6 @@
 package com.trackcats.app.ui
 
+import androidx.compose.material3.FilterChip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.size
@@ -151,6 +152,12 @@ fun MoreScreen(vm: AppVm, onFindSeed: () -> Unit, onResync: () -> Unit, onHistor
                 Box(Modifier.size(36.dp).clip(CircleShape).background(Color(user.themeColor ?: DefaultThemeColor)).border(2.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape))
             }
             OutlinedButton(onClick = { theming = true }, modifier = Modifier.fillMaxWidth()) { Text("Change theme colour") }
+            Text("Light or dark", fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                for ((mode, label) in listOf("system" to "Follow phone", "light" to "Light", "dark" to "Dark")) {
+                    FilterChip(selected = user.darkMode == mode, onClick = { vm.update { it.copy(darkMode = mode) } }, label = { Text(label) })
+                }
+            }
             SwitchRow("Track positions on rolls", user.advanced) { on -> vm.update { it.copy(advanced = on) } }
             Text("Shows the track position (1A, 2B…) next to every roll, for comparing with other seed trackers. The full track table is always in the pull-up tab at the bottom of the Rolls tab.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

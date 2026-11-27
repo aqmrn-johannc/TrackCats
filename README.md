@@ -59,8 +59,8 @@ python tools/convert_data.py refdata/bc-en.yaml app/src/main/assets/gamedata.jso
 
 No artwork is stored in this repository or in the APK. The app downloads cat icons and banner art
 from the community-run [Battle Cats Wiki](https://battlecats.miraheze.org) and caches them on the
-phone. `app/src/main/assets/banner_art.json` only lists which wiki file belongs to which banner;
-regenerate it with:
+phone. `app/src/main/assets/banner_art.json` only lists which wiki file belongs to which banner, and
+`banner_names.json` the name of each banner's set; regenerate both with:
 
 ```
 python tools/make_banner_map.py app/src/main/assets/gamedata.json app/src/main/assets/banner_art.json

@@ -2,6 +2,16 @@
 
 The same notes appear inside the app under More, then "What's new".
 
+## 1.0.3 (2026-11-27)
+
+- **Banner calendar**: on the Banners tab, switch to Calendar to see open and upcoming banners week by week, with their set name, dates, guaranteed draws, your wishlist cats and how many ubers are new for you.
+- **Wishlist routes**: the Plan tab now lists every wishlist cat with the cheapest way to reach it and whether you can afford it.
+- **Cat details**: tap any cat to see its forms, where to get it, your cheapest route, and to mark it owned or wishlisted. A button looks it up on the wiki.
+- **Mark many cats at once**: on My cats, narrow the list with search, rarity or a set, then mark or unmark everything shown.
+- **Set progress**: My cats has a Sets view showing how many ubers of each set you own and which are missing. Tap a set to list its cats.
+- **Light or dark**: choose it under More, then Display, or keep following the phone.
+- When confirming rolls you can now choose whether the cats are marked as owned (they still are by default).
+
 ## 1.0.2 (2026-11-27)
 
 - **Rolls tab**: the guaranteed-draw card now sits right under the banner, above your next rolls. Banners without one say "This banner doesn't have a guaranteed uber."

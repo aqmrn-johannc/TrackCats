@@ -1,5 +1,6 @@
 package com.trackcats.app.ui
 
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
@@ -91,6 +92,9 @@ fun bannerPerk(event: EventInfo): String? = when {
 
 fun plural(n: Int, one: String, many: String = one + "s") = if (n == 1) "1 $one" else "$n $many"
 
+/** Opens the details of a cat. Provided once at the top of the app so any row or picture can call it. */
+val LocalCatDetails = staticCompositionLocalOf<(Int) -> Unit> { {} }
+
 /** Every section of every screen sits in one of these: a raised, rounded card. */
 @Composable
 fun SectionCard(modifier: Modifier = Modifier, title: String? = null, highlight: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
@@ -140,8 +144,9 @@ fun Expandable(open: Boolean, content: @Composable ColumnScope.() -> Unit) {
 @Composable
 fun CatStrip(ids: List<Int>, game: Game, modifier: Modifier = Modifier, captions: List<String>? = null) {
     FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        val details = LocalCatDetails.current
         ids.forEachIndexed { i, id ->
-            Column(Modifier.width(72.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(Modifier.width(72.dp).clip(RoundedCornerShape(10.dp)).clickable { details(id) }, horizontalAlignment = Alignment.CenterHorizontally) {
                 CatIcon(id, game, width = 66.dp)
                 Text(game.name(id), style = MaterialTheme.typography.labelSmall, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, fontWeight = FontWeight.SemiBold)
                 captions?.getOrNull(i)?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center) }
@@ -182,10 +187,12 @@ fun Tag(text: String, color: Color, modifier: Modifier = Modifier) {
 @Composable
 fun RollRow(index: Int, roll: Roll, game: Game, valuer: Valuer, showTrack: Boolean, modifier: Modifier = Modifier) {
     val good = valuer.isGood(roll)
+    val details = LocalCatDetails.current
     Row(
         modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
+            .clickable(onClickLabel = "Cat details") { details(roll.catId) }
             .background(if (good) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
             .padding(horizontal = 4.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,

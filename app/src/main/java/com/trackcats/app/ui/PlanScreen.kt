@@ -1,5 +1,6 @@
 package com.trackcats.app.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.width
@@ -120,6 +121,8 @@ fun PlanScreen(vm: AppVm) {
             Text("Any roll you make before then changes this.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
+        WishlistCard(game, pools, upcoming, seed, user.lastCat, user.wishlist, user.tickets, user.catFood, today)
+
         TargetCard(game, pools.map { it }, upcoming, seed, user.lastCat, user.tickets, user.catFood, today, valuer)
 
         // Far ahead
@@ -129,9 +132,10 @@ fun PlanScreen(vm: AppVm) {
             SectionCard(title = "Far ahead: next 100 rolls") {
                 Text("On ${bannerTitle(banner)} (the banner chosen on the Rolls tab).", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (notable.isEmpty()) Text("No legend rare, wishlist cat or new uber in the next 100 rolls here.")
+                val details = LocalCatDetails.current
                 for (n in notable.take(25)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("${n.index}", Modifier.width(34.dp), style = MaterialTheme.typography.titleMedium, color = rarityColor(n.roll.rarity), textAlign = TextAlign.Center)
+                        Text("${n.index}", Modifier.width(34.dp).clickable { details(n.roll.catId) }, style = MaterialTheme.typography.titleMedium, color = rarityColor(n.roll.rarity), textAlign = TextAlign.Center)
                         CatIcon(n.roll.catId, game, width = 48.dp)
                         Text(game.name(n.roll.catId), Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
                         RarityTag(n.roll.rarity)
@@ -237,7 +241,7 @@ private fun TargetCard(
 }
 
 @Composable
-private fun RouteLine(route: TargetRoute, tickets: Int, catFood: Int, today: LocalDate) {
+fun RouteLine(route: TargetRoute, tickets: Int, catFood: Int, today: LocalDate) {
     val how = when {
         route.viaGuaranteed && route.tickets == 0 -> "one guaranteed 11-draw (${route.catFood} Cat Food)"
         route.viaGuaranteed -> "${plural(route.tickets, "ticket roll")}, then one guaranteed 11-draw (${route.catFood} Cat Food)"
@@ -251,5 +255,40 @@ private fun RouteLine(route: TargetRoute, tickets: Int, catFood: Int, today: Loc
             style = MaterialTheme.typography.bodySmall,
             color = if (affordable) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/** For every wishlist cat: the cheapest way to reach it from where the seed is now. */
+@Composable
+private fun WishlistCard(
+    game: Game, active: List<com.trackcats.app.core.Pool>, upcoming: List<com.trackcats.app.core.Pool>,
+    seed: Int, last: Int, wishlist: Set<Int>, tickets: Int, catFood: Int, today: LocalDate,
+) {
+    val details = LocalCatDetails.current
+    val rows = remember(wishlist, active, upcoming, seed, last) {
+        wishlist.filter { it in game.data.cats }
+            .map { id -> id to Planner.findTarget(active, upcoming, seed, last, id).firstOrNull() }
+            .sortedWith(compareBy({ it.second?.cost ?: Int.MAX_VALUE }, { game.name(it.first) }))
+    }
+    SectionCard(title = "Wishlist: when will I get it?") {
+        if (rows.isEmpty()) {
+            Text("Your wishlist is empty. Tap the heart next to a cat on the My cats tab, and its cheapest route shows up here.")
+            return@SectionCard
+        }
+        Text("The cheapest way to each wishlist cat from where your seed is now. Any roll you make changes these.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        for ((id, route) in rows) {
+            Row(Modifier.fillMaxWidth().clickable { details(id) }, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                CatIcon(id, game, width = 60.dp)
+                Column(Modifier.weight(1f)) {
+                    Text(game.name(id), fontWeight = FontWeight.Bold)
+                    if (route != null) RouteLine(route, tickets, catFood, today)
+                    else Text(
+                        if ((active + upcoming).any { it.contains(id) }) "Not within your next 300 rolls on any open or upcoming banner."
+                        else "Not on any open or upcoming banner right now.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
     }
 }

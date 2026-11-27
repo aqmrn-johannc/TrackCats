@@ -1,5 +1,11 @@
 package com.trackcats.app
 
+import com.trackcats.app.ui.CatDetailDialog
+import com.trackcats.app.ui.LocalCatDetails
+import com.trackcats.app.ui.resolveDark
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.activity.SystemBarStyle
 import com.trackcats.app.data.Store
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -83,7 +89,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val user by Store.user.collectAsStateWithLifecycle()
-            TrackCatsTheme(user.themeColor) { TrackCatsRoot() }
+            // Status and navigation bar icons follow the app's own light/dark choice.
+            val dark = resolveDark(user.darkMode)
+            DisposableEffect(dark) {
+                val style = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT) { dark }
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+                onDispose { }
+            }
+            TrackCatsTheme(user.themeColor, user.darkMode) { TrackCatsRoot() }
         }
     }
 }
@@ -107,6 +120,7 @@ fun TrackCatsRoot(vm: AppVm = viewModel()) {
     /** A full-screen page shown over the tabs: wizard, resync, history, glossary, tutorial, update notes. */
     var page by rememberSaveable { mutableStateOf(if (user.tutorialDone) "" else "tutorial") }
     var resyncEvent by rememberSaveable { mutableStateOf<String?>(null) }
+    var detailCat by rememberSaveable { mutableStateOf(0) }
 
     // The date can change while the app sits in the background.
     androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
@@ -126,6 +140,7 @@ fun TrackCatsRoot(vm: AppVm = viewModel()) {
     }
 
     val tabStates = rememberSaveableStateHolder()
+    CompositionLocalProvider(LocalCatDetails provides { id -> if (id > 0) detailCat = id }) {
     AppBackground {
         Scaffold(
             containerColor = Color.Transparent,
@@ -193,6 +208,9 @@ fun TrackCatsRoot(vm: AppVm = viewModel()) {
                 }
             }
         }
+    }
+
+    if (detailCat > 0) CatDetailDialog(vm, detailCat, onDismiss = { detailCat = 0 })
     }
 
     // After an update, show what changed once.

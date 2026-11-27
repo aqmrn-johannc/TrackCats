@@ -1,5 +1,6 @@
 package com.trackcats.app.ui
 
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -170,8 +171,8 @@ fun HomeScreen(vm: AppVm, onFindSeed: () -> Unit, onMismatch: (EventInfo) -> Uni
     }
     if (rolling) {
         RolledDialog(event, pool, seed, user.lastCat, game, valuer, user.advanced,
-            onConfirm = { applied, guaranteed ->
-                vm.applyRolls(event, applied, guaranteed)
+            onConfirm = { applied, guaranteed, markOwned ->
+                vm.applyRolls(event, applied, guaranteed, markOwned)
                 rolling = false
             },
             onMismatch = {
@@ -236,11 +237,12 @@ private fun GuaranteedPreview(pool: Pool, draw: List<Roll>, game: Game, valuer: 
 @Composable
 private fun RolledDialog(
     event: EventInfo, pool: Pool, seed: Int, last: Int, game: Game, valuer: Valuer, showTrack: Boolean,
-    onConfirm: (List<Roll>, Boolean) -> Unit, onMismatch: () -> Unit, onDismiss: () -> Unit,
+    onConfirm: (List<Roll>, Boolean, Boolean) -> Unit, onMismatch: () -> Unit, onDismiss: () -> Unit,
 ) {
     val canGuarantee = pool.guaranteedRolls > 0 && pool.slots[Rarity.UBER].isNotEmpty()
     var guaranteed by remember { mutableStateOf(false) }
     var count by remember { mutableIntStateOf(1) }
+    var markOwned by remember { mutableStateOf(true) }
     val rolls = remember(guaranteed, count, seed, last) {
         if (guaranteed) Roller.guaranteedDraw(pool, seed, last).orEmpty() else Roller.simulate(pool, seed, last, count)
     }
@@ -262,9 +264,13 @@ private fun RolledDialog(
                 Column(Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
                     rolls.forEachIndexed { i, roll -> RollRow(i + 1, roll, game, valuer, showTrack) }
                 }
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { markOwned = !markOwned }, verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = markOwned, onCheckedChange = null, modifier = Modifier.padding(end = 8.dp))
+                    Text("Mark these cats as owned")
+                }
             }
         },
-        confirmButton = { Button(onClick = { onConfirm(rolls, guaranteed) }) { Text("Yes, that's what I got") } },
+        confirmButton = { Button(onClick = { onConfirm(rolls, guaranteed, markOwned) }) { Text("Yes, that's what I got") } },
         dismissButton = {
             Row {
                 TextButton(onClick = onMismatch) { Text("I got something else") }

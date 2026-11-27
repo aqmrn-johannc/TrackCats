@@ -1,5 +1,7 @@
 package com.trackcats.app.ui
 
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -45,8 +47,18 @@ val GameFont = FontFamily(Font(R.font.lilita_one))
 
 const val DefaultThemeColor = 0xFFE8590C.toInt()
 
+/** Whether the app is currently drawn dark; set by [TrackCatsTheme] from the player's choice. */
+val LocalDark = staticCompositionLocalOf { false }
+
 @Composable
-fun isDarkTheme(): Boolean = isSystemInDarkTheme()
+fun isDarkTheme(): Boolean = LocalDark.current
+
+@Composable
+fun resolveDark(mode: String): Boolean = when (mode) {
+    "light" -> false
+    "dark" -> true
+    else -> isSystemInDarkTheme()
+}
 
 /**
  * Builds the app's colours around one accent colour chosen by the player. The accent is nudged
@@ -135,16 +147,18 @@ private val AppShapes = Shapes(
 )
 
 @Composable
-fun TrackCatsTheme(accent: Int? = null, content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
+fun TrackCatsTheme(accent: Int? = null, mode: String = "system", content: @Composable () -> Unit) {
+    val dark = resolveDark(mode)
     val scheme = remember(accent, dark) { schemeFor(Color(accent ?: DefaultThemeColor), dark) }
-    MaterialTheme(colorScheme = scheme, typography = AppType, shapes = AppShapes, content = content)
+    CompositionLocalProvider(LocalDark provides dark) {
+        MaterialTheme(colorScheme = scheme, typography = AppType, shapes = AppShapes, content = content)
+    }
 }
 
 /** Soft gradient with a faint dot pattern, drawn behind every screen. */
 @Composable
 fun AppBackground(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
-    val dark = isSystemInDarkTheme()
+    val dark = isDarkTheme()
     // The background picks up a soft tint of the chosen theme colour.
     val accent = MaterialTheme.colorScheme.primary
     val f = remember(accent) { FloatArray(3).also { android.graphics.Color.colorToHSV(accent.toArgb(), it) } }

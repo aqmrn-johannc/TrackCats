@@ -6,6 +6,18 @@ class Release(val code: Int, val name: String, val date: String, val changes: Li
 object Changelog {
     val releases = listOf(
         Release(
+            4, "1.0.3", "2026-11-27",
+            listOf(
+                "Banner calendar: on the Banners tab, switch to Calendar to see open and upcoming banners week by week, with guaranteed draws, your wishlist cats and how many ubers are new for you.",
+                "Wishlist routes: the Plan tab now lists every wishlist cat with the cheapest way to reach it and whether you can afford it.",
+                "Cat details: tap any cat to see its forms, where to get it, your cheapest route, and to mark it owned or wishlisted.",
+                "Mark many cats at once: on My cats, narrow the list with search, rarity or a set, then mark or unmark everything shown.",
+                "Set progress: My cats has a Sets view showing how many ubers of each set you own and which are missing.",
+                "Light or dark: choose it under More, then Display, or keep following the phone.",
+                "When confirming rolls you can now choose whether the cats are marked as owned.",
+            ),
+        ),
+        Release(
             3, "1.0.2", "2026-11-27",
             listOf(
                 "Rolls tab: the guaranteed-draw card now sits right under the banner, above your next rolls. Banners without one say so.",

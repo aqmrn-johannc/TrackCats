@@ -54,8 +54,8 @@ object Art {
     private const val FILE_URL = "https://battlecats.miraheze.org/wiki/Special:FilePath/"
     private const val USER_AGENT = "TrackCats/1 (Android fan app; cached image viewer)"
 
-    /** Icon of a cat's first form. Wiki files are numbered from 0, the game data from 1. */
-    fun catUrl(id: Int): String = FILE_URL + "Uni%03d_f00.png".format(id - 1)
+    /** Icon of a cat's form (0 first, 1 evolved, 2 true). Wiki files are numbered from 0, the game data from 1. */
+    fun catUrl(id: Int, form: Int = 0): String = FILE_URL + "Uni%03d_%s00.png".format(id - 1, "fcs"[form.coerceIn(0, 2)])
 
     private var bannerFiles: Map<Int, String>? = null
 
@@ -129,7 +129,7 @@ object Art {
 
 /** A cat's picture in a rarity-coloured frame. Shows the first letter of its name until the picture arrives. */
 @Composable
-fun CatIcon(id: Int, game: Game, modifier: Modifier = Modifier, width: Dp = 54.dp) {
+fun CatIcon(id: Int, game: Game, modifier: Modifier = Modifier, width: Dp = 54.dp, form: Int = 0) {
     val context = LocalContext.current
     val rarity = game.rarityIdx(id)
     val shape = RoundedCornerShape(8.dp)
@@ -144,7 +144,7 @@ fun CatIcon(id: Int, game: Game, modifier: Modifier = Modifier, width: Dp = 54.d
     ) {
         Text(game.name(id).take(1), color = Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.titleMedium)
         if (id > 0) AsyncImage(
-            model = remember(id) { ImageRequest.Builder(context).data(Art.catUrl(id)).build() },
+            model = remember(id, form) { ImageRequest.Builder(context).data(Art.catUrl(id, form)).build() },
             contentDescription = null,
             contentScale = ContentScale.Fit,
             // Laid out larger than the frame so the transparent margin falls outside the clip.
