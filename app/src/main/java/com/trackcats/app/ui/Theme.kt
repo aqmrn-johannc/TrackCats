@@ -1,63 +1,174 @@
 package com.trackcats.app.ui
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.material3.Text
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.trackcats.app.R
 import com.trackcats.app.core.Rarity
 
-val BrandYellow = Color(0xFFFCDB02)
-val Ink = Color(0xFF1C1A12)
+val Ink = Color(0xFF1B1F2A)
+val Orange = Color(0xFFE8590C)
+val Amber = Color(0xFFFFB627)
+
+/** Chunky display lettering (Lilita One, SIL Open Font License) for titles, buttons and big results. */
+val GameFont = FontFamily(Font(R.font.lilita_one))
 
 private val Light = lightColorScheme(
-    primary = Ink,
-    onPrimary = BrandYellow,
-    primaryContainer = BrandYellow,
-    onPrimaryContainer = Ink,
-    secondary = Color(0xFF6A5D00),
+    primary = Orange,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFE2C7),
+    onPrimaryContainer = Color(0xFF4A1C00),
+    secondary = Color(0xFF1971C2),
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFFFF2A8),
-    onSecondaryContainer = Ink,
-    tertiary = Color(0xFF2E7D32),
-    background = Color(0xFFFFFBEC),
+    secondaryContainer = Color(0xFFFFF0C2),
+    onSecondaryContainer = Color(0xFF3B2A00),
+    tertiary = Color(0xFF2B8A3E),
+    background = Color(0xFFEAF3FB),
     onBackground = Ink,
-    surface = Color(0xFFFFFBEC),
+    surface = Color.White,
     onSurface = Ink,
-    surfaceVariant = Color(0xFFF1EBD2),
-    onSurfaceVariant = Color(0xFF4C4733),
-    surfaceContainer = Color(0xFFF7F1DA),
-    surfaceContainerHigh = Color(0xFFF1EBD2),
-    surfaceContainerLow = Color(0xFFFBF6E2),
-    outline = Color(0xFF7D775F),
+    surfaceVariant = Color(0xFFE7EDF4),
+    onSurfaceVariant = Color(0xFF55606E),
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = Color(0xFFF7FAFD),
+    surfaceContainer = Color.White,
+    surfaceContainerHigh = Color(0xFFF7FAFD),
+    surfaceContainerHighest = Color(0xFFEEF3F8),
+    outline = Color(0xFF8A96A6),
+    outlineVariant = Color(0xFFD5DDE7),
 )
 
 private val Dark = darkColorScheme(
-    primary = BrandYellow,
-    onPrimary = Ink,
-    primaryContainer = Color(0xFF524600),
-    onPrimaryContainer = Color(0xFFFFF2A8),
-    secondary = Color(0xFFD9C85A),
-    onSecondary = Ink,
-    secondaryContainer = Color(0xFF3F3A1E),
-    onSecondaryContainer = Color(0xFFF3E9B5),
-    tertiary = Color(0xFF81C784),
-    background = Color(0xFF15140E),
-    onBackground = Color(0xFFEAE3CB),
-    surface = Color(0xFF15140E),
-    onSurface = Color(0xFFEAE3CB),
-    surfaceVariant = Color(0xFF34311F),
-    onSurfaceVariant = Color(0xFFCEC7A9),
-    surfaceContainer = Color(0xFF211F16),
-    surfaceContainerHigh = Color(0xFF2B291D),
-    surfaceContainerLow = Color(0xFF1C1B13),
-    outline = Color(0xFF979176),
+    primary = Color(0xFFFF9F45),
+    onPrimary = Color(0xFF2B1200),
+    primaryContainer = Color(0xFF5A2D00),
+    onPrimaryContainer = Color(0xFFFFDCC0),
+    secondary = Color(0xFF74B6F2),
+    onSecondary = Color(0xFF002B4D),
+    secondaryContainer = Color(0xFF45380F),
+    onSecondaryContainer = Color(0xFFFFE9A8),
+    tertiary = Color(0xFF69DB7C),
+    background = Color(0xFF0F1420),
+    onBackground = Color(0xFFE6EBF3),
+    surface = Color(0xFF1B2232),
+    onSurface = Color(0xFFE6EBF3),
+    surfaceVariant = Color(0xFF263043),
+    onSurfaceVariant = Color(0xFFB4BFCE),
+    surfaceContainerLowest = Color(0xFF141A27),
+    surfaceContainerLow = Color(0xFF1B2232),
+    surfaceContainer = Color(0xFF1B2232),
+    surfaceContainerHigh = Color(0xFF222B3D),
+    surfaceContainerHighest = Color(0xFF2A3447),
+    outline = Color(0xFF6B788C),
+    outlineVariant = Color(0xFF323D52),
+)
+
+private val base = Typography()
+
+/** Titles and button labels use the display font; body text keeps the system font for readability. */
+private val AppType = Typography(
+    displaySmall = base.displaySmall.copy(fontFamily = GameFont),
+    headlineLarge = base.headlineLarge.copy(fontFamily = GameFont),
+    headlineMedium = base.headlineMedium.copy(fontFamily = GameFont),
+    headlineSmall = base.headlineSmall.copy(fontFamily = GameFont),
+    titleLarge = base.titleLarge.copy(fontFamily = GameFont, fontSize = 24.sp, letterSpacing = 0.3.sp),
+    titleMedium = base.titleMedium.copy(fontFamily = GameFont, fontSize = 19.sp, letterSpacing = 0.3.sp),
+    labelLarge = base.labelLarge.copy(fontFamily = GameFont, fontSize = 16.sp, letterSpacing = 0.4.sp),
+)
+
+private val AppShapes = Shapes(
+    small = RoundedCornerShape(10.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(22.dp),
+    extraLarge = RoundedCornerShape(28.dp),
 )
 
 @Composable
 fun TrackCatsTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = if (isSystemInDarkTheme()) Dark else Light, content = content)
+    MaterialTheme(colorScheme = if (isSystemInDarkTheme()) Dark else Light, typography = AppType, shapes = AppShapes, content = content)
+}
+
+/** The colours of the bar across the top of the app. */
+val TopBarBrush = Brush.horizontalGradient(listOf(Color(0xFFFF8A1F), Color(0xFFF2600C), Color(0xFFE0441B)))
+
+/** Soft gradient with a faint dot pattern, drawn behind every screen. */
+@Composable
+fun AppBackground(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+    val dark = isSystemInDarkTheme()
+    val colors = if (dark) listOf(Color(0xFF131B33), Color(0xFF0F1420), Color(0xFF1B1326))
+    else listOf(Color(0xFFD9ECFF), Color(0xFFEFF5FB), Color(0xFFFFEFD9))
+    val dot = if (dark) Color.White.copy(alpha = 0.035f) else Color(0xFF1971C2).copy(alpha = 0.06f)
+    val step = with(LocalDensity.current) { 26.dp.toPx() }
+    val radius = with(LocalDensity.current) { 2.5.dp.toPx() }
+    Box(modifier.fillMaxSize().background(Brush.verticalGradient(colors))) {
+        Canvas(Modifier.fillMaxSize()) {
+            var row = 0
+            var y = step / 2
+            while (y < size.height) {
+                var x = if (row % 2 == 0) step / 2 else step
+                while (x < size.width) {
+                    drawCircle(dot, radius, Offset(x, y))
+                    x += step
+                }
+                y += step * 0.86f
+                row++
+            }
+        }
+        content()
+    }
+}
+
+/**
+ * Display lettering with a dark outline, like a game title. The outline layer is hidden from
+ * accessibility so the text is announced once.
+ */
+@Composable
+fun OutlinedText(
+    text: String,
+    style: TextStyle,
+    modifier: Modifier = Modifier,
+    fill: Color = Color.White,
+    outline: Color = Color(0xFF2A1A0E),
+    outlineWidth: Dp = 4.dp,
+    maxLines: Int = Int.MAX_VALUE,
+    textAlign: TextAlign? = null,
+) {
+    val width = with(LocalDensity.current) { outlineWidth.toPx() }
+    val shaped = style.copy(fontFamily = GameFont, letterSpacing = 1.2.sp)
+    Box(modifier) {
+        Text(
+            text, Modifier.clearAndSetSemantics { }, color = outline, maxLines = maxLines, overflow = TextOverflow.Ellipsis, textAlign = textAlign,
+            style = shaped.copy(drawStyle = Stroke(width = width, join = StrokeJoin.Round)),
+        )
+        Text(text, color = fill, style = shaped, maxLines = maxLines, overflow = TextOverflow.Ellipsis, textAlign = textAlign)
+    }
 }
 
 /** Rarity colours follow the game's convention closely enough to be recognisable. */

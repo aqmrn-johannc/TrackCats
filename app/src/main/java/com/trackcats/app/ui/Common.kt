@@ -1,5 +1,14 @@
 package com.trackcats.app.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,6 +50,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -80,18 +91,61 @@ fun bannerPerk(event: EventInfo): String? = when {
 
 fun plural(n: Int, one: String, many: String = one + "s") = if (n == 1) "1 $one" else "$n $many"
 
+/** Every section of every screen sits in one of these: a raised, rounded card. */
 @Composable
 fun SectionCard(modifier: Modifier = Modifier, title: String? = null, highlight: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(20.dp)
     Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (highlight) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer,
-        ),
-        shape = RoundedCornerShape(16.dp),
+        modifier = modifier.fillMaxWidth().shadow(6.dp, shape, ambientColor = Color(0x33203050), spotColor = Color(0x33203050)),
+        colors = CardDefaults.cardColors(containerColor = if (highlight) scheme.secondaryContainer else scheme.surfaceContainer),
+        shape = shape,
+        border = BorderStroke(1.dp, if (highlight) Amber.copy(alpha = 0.7f) else scheme.outlineVariant),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (title != null) Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Column(
+            Modifier.padding(16.dp).animateContentSize(spring(stiffness = Spring.StiffnessMediumLow)),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (title != null) Text(title, style = MaterialTheme.typography.titleMedium, color = if (highlight) scheme.onSecondaryContainer else scheme.primary)
             content()
+        }
+    }
+}
+
+/** Big heading at the top of a screen, in game-style lettering. */
+@Composable
+fun ScreenTitle(text: String, modifier: Modifier = Modifier, subtitle: String? = null) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        OutlinedText(text, MaterialTheme.typography.headlineSmall, fill = Color.White, outline = Color(0xFF3A2414), outlineWidth = 3.5.dp)
+        if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Small heading between groups of cards. */
+@Composable
+fun GroupLabel(text: String, modifier: Modifier = Modifier) {
+    Text(text, modifier.padding(top = 8.dp, start = 4.dp), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
+}
+
+/** Content that slides open and closed. */
+@Composable
+fun Expandable(open: Boolean, content: @Composable ColumnScope.() -> Unit) {
+    AnimatedVisibility(open, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp), content = content)
+    }
+}
+
+/** A row of cat pictures with names underneath, for "you get these" summaries. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun CatStrip(ids: List<Int>, game: Game, modifier: Modifier = Modifier, captions: List<String>? = null) {
+    FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ids.forEachIndexed { i, id ->
+            Column(Modifier.width(72.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                CatIcon(id, game, width = 66.dp)
+                Text(game.name(id), style = MaterialTheme.typography.labelSmall, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, fontWeight = FontWeight.SemiBold)
+                captions?.getOrNull(i)?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center) }
+            }
         }
     }
 }
@@ -133,16 +187,15 @@ fun RollRow(index: Int, roll: Roll, game: Game, valuer: Valuer, showTrack: Boole
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(if (good) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
-            .padding(horizontal = 8.dp, vertical = 8.dp),
+            .padding(horizontal = 4.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier.size(32.dp).clip(CircleShape).background(rarityColor(roll.rarity)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(if (roll.guaranteed) "★" else "$index", color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-        }
-        Spacer(Modifier.width(12.dp))
+        Text(
+            if (roll.guaranteed) "★" else "$index", Modifier.width(30.dp), textAlign = TextAlign.Center,
+            color = rarityColor(roll.rarity), style = MaterialTheme.typography.titleMedium,
+        )
+        CatIcon(roll.catId, game)
+        Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 game.name(roll.catId),
@@ -175,26 +228,32 @@ fun dupeText(rarity: Int): String {
     return if (np > 0) "Duplicate · worth $np NP" else "Duplicate"
 }
 
-/** A compact, tappable summary of the chosen banner. */
+/** Text block shared by every banner card: name, dates and perk. */
 @Composable
-fun BannerHeader(event: EventInfo, today: LocalDate, onChange: () -> Unit) {
-    SectionCard(Modifier.clickable(onClick = onChange)) {
+fun BannerLines(event: EventInfo, today: LocalDate, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Text(bannerTitle(event), style = MaterialTheme.typography.titleMedium)
+        Text(
+            listOfNotNull(bannerWhen(event, today), bannerPerk(event)).joinToString(" · "),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** The chosen banner: artwork, name and a way to change it. */
+@Composable
+fun BannerHeader(event: EventInfo, game: Game, today: LocalDate, onChange: () -> Unit) {
+    SectionCard(Modifier.clip(RoundedCornerShape(20.dp)).clickable(onClick = onChange)) {
+        BannerArt(event, game)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Banner", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(bannerTitle(event), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(
-                    listOfNotNull(bannerWhen(event, today), bannerPerk(event)).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Text("Change", color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
+            BannerLines(event, today, Modifier.weight(1f))
+            Text("Change", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
 
 @Composable
-fun BannerPickerDialog(title: String, groups: List<Pair<String, List<EventInfo>>>, today: LocalDate, onPick: (EventInfo) -> Unit, onDismiss: () -> Unit) {
+fun BannerPickerDialog(title: String, game: Game, groups: List<Pair<String, List<EventInfo>>>, today: LocalDate, onPick: (EventInfo) -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
@@ -207,13 +266,11 @@ fun BannerPickerDialog(title: String, groups: List<Pair<String, List<EventInfo>>
                     }
                     items(events, key = { "$label-${it.k}" }) { e ->
                         Column(
-                            Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { onPick(e) }.padding(vertical = 8.dp, horizontal = 4.dp),
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable { onPick(e) }.padding(vertical = 8.dp, horizontal = 2.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Text(bannerTitle(e), fontWeight = FontWeight.SemiBold)
-                            Text(
-                                listOfNotNull(bannerWhen(e, today), bannerPerk(e)).joinToString(" · "),
-                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            BannerArt(e, game)
+                            BannerLines(e, today)
                         }
                     }
                 }
@@ -255,10 +312,11 @@ fun CatPickerDialog(title: String, game: Game, ids: List<Int>, onPick: (Int) -> 
                 LazyColumn(Modifier.heightIn(max = 380.dp)) {
                     items(shown, key = { it }) { id ->
                         Row(
-                            Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { onPick(id) }.padding(vertical = 10.dp, horizontal = 4.dp),
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { onPick(id) }.padding(vertical = 6.dp, horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(game.name(id), Modifier.weight(1f))
+                            CatIcon(id, game, width = 48.dp)
+                            Text(game.name(id), Modifier.weight(1f).padding(horizontal = 10.dp), fontWeight = FontWeight.SemiBold)
                             RarityTag(game.rarityIdx(id))
                         }
                     }
@@ -286,10 +344,11 @@ fun RollSequenceEditor(game: Game, pool: Pool, ids: List<Int>, onChange: (List<I
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     ids.forEachIndexed { i, id ->
                         Row(
-                            Modifier.clip(RoundedCornerShape(50)).background(rarityColor(game.rarityIdx(id))).padding(start = 10.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
+                            Modifier.clip(RoundedCornerShape(12.dp)).background(rarityColor(game.rarityIdx(id))).padding(start = 4.dp, end = 2.dp, top = 4.dp, bottom = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text("${i + 1}. ${game.name(id)}", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                            CatIcon(id, game, width = 40.dp)
+                            Text("${i + 1}. ${game.name(id)}", Modifier.padding(start = 6.dp), color = Color.White, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                             IconButton(onClick = { onChange(ids.filterIndexed { j, _ -> j != i }) }, modifier = Modifier.size(28.dp)) {
                                 Icon(Icons.Filled.Clear, contentDescription = "Remove roll ${i + 1}", tint = Color.White, modifier = Modifier.size(16.dp))
                             }
@@ -304,18 +363,22 @@ fun RollSequenceEditor(game: Game, pool: Pool, ids: List<Int>, onChange: (List<I
                 pool.slots[rarity].distinct().filter { matchesQuery(game, it, query) }.sortedBy { game.name(it) }
             }
             if (cats.isEmpty()) continue
-            Text(Rarity.names[rarity], style = MaterialTheme.typography.labelLarge, color = rarityColor(rarity), fontWeight = FontWeight.Bold)
+            Text(Rarity.names[rarity], Modifier.padding(top = 4.dp), style = MaterialTheme.typography.titleMedium, color = rarityColor(rarity))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 for (id in cats) {
-                    Text(
-                        game.name(id),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .border(1.dp, rarityColor(rarity), RoundedCornerShape(50))
+                    Column(
+                        Modifier
+                            .width(76.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                             .clickable { onChange(ids + id) }
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                            .padding(5.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        CatIcon(id, game, width = 64.dp)
+                        Text(game.name(id), style = MaterialTheme.typography.labelSmall, maxLines = 2, minLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                    }
                 }
             }
         }

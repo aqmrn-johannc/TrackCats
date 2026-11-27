@@ -45,6 +45,8 @@ data class UserState(
     val tutorialDone: Boolean = false,
     val seenEvents: Set<String> = emptySet(),
     val notified: Set<String> = emptySet(),
+    /** versionCode whose "What's new" page this player has already seen. */
+    val lastSeenVersion: Int = 0,
 ) {
     val seedInt: Int? get() = seed?.toInt()
 }

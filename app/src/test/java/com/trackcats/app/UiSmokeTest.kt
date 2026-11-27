@@ -11,6 +11,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.trackcats.app.core.Roller
 import com.trackcats.app.data.Store
 import com.trackcats.app.data.UserState
+import com.trackcats.app.ui.Changelog
 import com.trackcats.app.work.Alerts
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -23,7 +24,7 @@ import java.time.LocalDate
 
 /** Opens every screen with real bundled data to catch crashes; it does not judge how things look. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "w411dp-h914dp-xxhdpi")
 class UiSmokeTest {
     @get:Rule
     val rule = createAndroidComposeRule<MainActivity>()
@@ -37,6 +38,8 @@ class UiSmokeTest {
         rule.onNodeWithText("Skip").performClick()
         rule.onNodeWithText("Let's find your seed").assertIsDisplayed()
         assertTrue(Store.user.value.tutorialDone)
+        // A new player is not shown the update notes on top of the introduction.
+        assertEquals(Changelog.latest.code, Store.user.value.lastSeenVersion)
 
         // Wizard: choose the first open banner, then the roll entry step appears.
         rule.onNodeWithText("Find my seed").performClick()
@@ -48,6 +51,11 @@ class UiSmokeTest {
         val game = Store.game.value
         Store.update(ctx) { UserState(seed = 123456789, tutorialDone = true, tickets = 20, catFood = 3000, platTickets = 1, legendTickets = 1) }
         rule.waitForIdle()
+        // Someone updating from an older version sees the update notes once.
+        rule.onNodeWithText("What's new in ${Changelog.latest.name}").assertIsDisplayed()
+        rule.onNodeWithText("Got it").performClick()
+        rule.waitForIdle()
+        assertEquals(Changelog.latest.code, Store.user.value.lastSeenVersion)
         rule.onNodeWithText("Your next rolls").assertIsDisplayed()
         val banner = com.trackcats.app.ui.selectedBanner(game, Store.user.value, today)
         if (banner != null) {
@@ -79,10 +87,19 @@ class UiSmokeTest {
         assertEquals(123456789L, Store.user.value.seed)
         rule.onNodeWithText("Back").performClick()
         rule.onNodeWithText("What do these words mean?").performScrollTo().performClick()
-        rule.onNodeWithText("Seed").assertIsDisplayed()
+        rule.onNodeWithText("Seed").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Back").performScrollTo().performClick()
+        rule.onNodeWithText("What's new").performScrollTo().performClick()
+        rule.onNodeWithText("Version ${Changelog.latest.name}", substring = true).performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Back").performScrollTo().performClick()
         rule.onNodeWithText("My rolls stopped matching").performScrollTo().performClick()
-        rule.onNodeWithText("Add at least 2 cats").assertIsDisplayed()
+        rule.onNodeWithText("Add at least 2 cats").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun updateLogMatchesTheBuild() {
+        assertEquals(BuildConfig.VERSION_NAME, Changelog.latest.name)
+        assertEquals(BuildConfig.VERSION_CODE, Changelog.latest.code)
     }
 
     @Test

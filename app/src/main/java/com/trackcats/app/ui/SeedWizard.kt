@@ -1,5 +1,8 @@
 package com.trackcats.app.ui
 
+import androidx.compose.ui.Alignment
+import androidx.compose.animation.core.animateFloatAsState
+import com.trackcats.app.core.Game
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -96,22 +99,23 @@ fun SeedWizard(vm: AppVm, onDone: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Find my seed", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Text("Step ${step.coerceAtMost(2) + 1} of 3", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        ScreenTitle("Find my seed", subtitle = "Step ${step.coerceAtMost(2) + 1} of 3")
         when (step) {
             0 -> {
-                Text("Which banner did you roll on?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("All your rolls must come from the same Rare Capsule banner. If you haven't rolled recently, do 10 rolls now on any banner below and note each cat.")
+                SectionCard(title = "Which banner did you roll on?") {
+                    Text("All your rolls must come from the same Rare Capsule banner. If you haven't rolled recently, do 10 rolls now on any banner below and note each cat.")
+                }
                 for ((label, events) in listOf("Open now" to game.ticketBanners(today), "Ended recently" to game.recentBanners(today))) {
                     if (events.isEmpty()) continue
-                    Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
-                    for (e in events) BannerChoice(e, vm, onPick = { eventKey = e.k; ids = emptyList(); note = null; step = 1 })
+                    GroupLabel(label)
+                    for (e in events) BannerChoice(e, game, vm, onPick = { eventKey = e.k; ids = emptyList(); note = null; step = 1 })
                 }
                 TextButton(onClick = onDone) { Text("Cancel") }
             }
             1 -> if (pool != null) {
-                Text(bannerTitle(pool.event), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 SectionCard {
+                    BannerArt(pool.event, game)
+                    Text(bannerTitle(pool.event), style = MaterialTheme.typography.titleMedium)
                     Text("Add your most recent rolls on this banner, oldest first. ${SeedFinder.RECOMMENDED_ROLLS} rolls give a reliable answer; ${SeedFinder.MIN_ROLLS} is the minimum.")
                     Text("Leave out the guaranteed uber at the end of a guaranteed 11-draw, and don't skip any roll in between.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -130,10 +134,12 @@ fun SeedWizard(vm: AppVm, onDone: () -> Unit) {
                 RollSequenceEditor(game, pool, ids, { ids = it; note = null })
             }
             2 -> {
-                Text("Searching…", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Checking every possible seed against your rolls. This usually takes under a minute.")
-                LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
-                Text("${(progress * 100).toInt()}%")
+                SectionCard(title = "Searching…", highlight = true) {
+                    Text("Checking every possible seed against your rolls. This usually takes under a minute.")
+                    val shown by animateFloatAsState(progress, label = "progress")
+                    LinearProgressIndicator(progress = { shown }, modifier = Modifier.fillMaxWidth())
+                    Text("${(progress * 100).toInt()}%", style = MaterialTheme.typography.titleMedium)
+                }
                 OutlinedButton(onClick = { finder?.cancelled = true; step = 1 }) { Text("Cancel") }
             }
             else -> {
@@ -144,7 +150,10 @@ fun SeedWizard(vm: AppVm, onDone: () -> Unit) {
                         val next = remember(seed) { Roller.rollOne(pool, seed, ids.last()) }
                         SectionCard(title = "Found your seed", highlight = true) {
                             Text("Your next roll on ${bannerTitle(pool.event)} should be:")
-                            Text(game.name(next.catId), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                CatIcon(next.catId, game, width = 96.dp)
+                                Text(game.name(next.catId), style = MaterialTheme.typography.headlineSmall)
+                            }
                             Text("Roll once to check. If it matches, tap \"I rolled\" and confirm, and your seed is locked in.")
                         }
                         Button(onClick = { vm.setSeed(seed, ids.last(), event, "setup"); onDone() }, modifier = Modifier.fillMaxWidth()) { Text("Save and show my rolls") }
@@ -173,13 +182,10 @@ fun SeedWizard(vm: AppVm, onDone: () -> Unit) {
 }
 
 @Composable
-private fun BannerChoice(event: EventInfo, vm: AppVm, onPick: () -> Unit) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onPick).padding(vertical = 10.dp, horizontal = 8.dp)) {
-        Text(bannerTitle(event), fontWeight = FontWeight.SemiBold)
-        Text(
-            listOfNotNull(bannerWhen(event, vm.today), bannerPerk(event)).joinToString(" · "),
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+private fun BannerChoice(event: EventInfo, game: Game, vm: AppVm, onPick: () -> Unit) {
+    SectionCard(Modifier.clip(RoundedCornerShape(20.dp)).clickable(onClick = onPick)) {
+        BannerArt(event, game)
+        BannerLines(event, vm.today)
     }
 }
 
@@ -196,7 +202,7 @@ fun ResyncScreen(vm: AppVm, startEventKey: String?, onDone: () -> Unit, onFullWi
     val event = game.event(eventKey)
     val seed = user.seedInt
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("My rolls stopped matching", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        ScreenTitle("My rolls stopped matching")
         Text("This happens when a roll was made without telling TrackCats. Add the last few cats you really got, oldest first, and it will find your place again. Three or more works best.")
         if (event == null || seed == null) {
             SectionCard(highlight = true) { Text("There is no saved seed yet. Use the guided seed search instead.") }
@@ -205,7 +211,7 @@ fun ResyncScreen(vm: AppVm, startEventKey: String?, onDone: () -> Unit, onFullWi
             return@Column
         }
         val pool = game.pool(event)
-        BannerHeader(event, today) { picking = true }
+        BannerHeader(event, game, today) { picking = true }
         result?.let { SectionCard(highlight = true) { Text(it) } }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(
@@ -226,7 +232,7 @@ fun ResyncScreen(vm: AppVm, startEventKey: String?, onDone: () -> Unit, onFullWi
         RollSequenceEditor(game, pool, ids, { ids = it; result = null })
     }
     if (picking) {
-        BannerPickerDialog("Which banner did you roll on?", bannerGroups(game, today), today, onPick = { eventKey = it.k; ids = emptyList(); picking = false }, onDismiss = { picking = false })
+        BannerPickerDialog("Which banner did you roll on?", game, bannerGroups(game, today), today, onPick = { eventKey = it.k; ids = emptyList(); picking = false }, onDismiss = { picking = false })
     }
 }
 

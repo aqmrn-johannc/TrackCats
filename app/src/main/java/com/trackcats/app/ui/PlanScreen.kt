@@ -1,5 +1,8 @@
 package com.trackcats.app.ui
 
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,8 +47,7 @@ fun PlanScreen(vm: AppVm) {
     val valuer = remember(user.owned, user.wishlist) { vm.valuer(user) }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Plan", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Text("Tell TrackCats what you have and it works out what to do with it.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        ScreenTitle("Plan", subtitle = "Tell TrackCats what you have and it works out what to do with it.")
 
         SectionCard(title = "What you have") {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -112,6 +114,7 @@ fun PlanScreen(vm: AppVm) {
             upcoming.map { Planner.score(it, seed, user.lastCat, reach, valuer) }.filter { it.good.isNotEmpty() }.maxByOrNull { it.value }
         }
         if (later != null) SectionCard(title = "Coming up") {
+            BannerArt(later.event, game)
             Text("${bannerTitle(later.event)}, ${bannerWhen(later.event, today).lowercase()}", fontWeight = FontWeight.Bold)
             Text("If you keep your seed where it is, your first $reach rolls there include: ${scoreSummary(later, game)}")
             Text("Any roll you make before then changes this.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -127,9 +130,10 @@ fun PlanScreen(vm: AppVm) {
                 Text("On ${bannerTitle(banner)} (the banner chosen on the Rolls tab).", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (notable.isEmpty()) Text("No legend rare, wishlist cat or new uber in the next 100 rolls here.")
                 for (n in notable.take(25)) {
-                    Row {
-                        Text("Roll ${n.index}", Modifier.padding(end = 12.dp), fontWeight = FontWeight.Bold)
-                        Text(game.name(n.roll.catId), Modifier.weight(1f))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("${n.index}", Modifier.width(34.dp), style = MaterialTheme.typography.titleMedium, color = rarityColor(n.roll.rarity), textAlign = TextAlign.Center)
+                        CatIcon(n.roll.catId, game, width = 48.dp)
+                        Text(game.name(n.roll.catId), Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
                         RarityTag(n.roll.rarity)
                     }
                 }
@@ -163,7 +167,8 @@ fun stepText(step: PlanStep): String = when (step.kind) {
 
 @Composable
 private fun PlanView(plan: Plan, game: Game, valuer: Valuer, leftover: Int) {
-    Text("You get: ${plan.good.joinToString(", ") { game.name(it.catId) }}", fontWeight = FontWeight.Bold)
+    Text("You get:", fontWeight = FontWeight.Bold)
+    CatStrip(plan.good.map { it.catId }, game)
     plan.steps.forEachIndexed { i, step ->
         var open by rememberSaveable(i, step.event.k, step.rolls.size) { mutableStateOf(false) }
         Column {
@@ -175,7 +180,7 @@ private fun PlanView(plan: Plan, game: Game, valuer: Valuer, leftover: Int) {
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             TextButton(onClick = { open = !open }) { Text(if (open) "Hide cats" else "Show every cat in this step") }
-            if (open) step.rolls.forEachIndexed { j, roll -> RollRow(j + 1, roll, game, valuer, false) }
+            Expandable(open) { step.rolls.forEachIndexed { j, roll -> RollRow(j + 1, roll, game, valuer, false) } }
         }
     }
     val cost = listOfNotNull(
@@ -190,8 +195,10 @@ private fun PlanView(plan: Plan, game: Game, valuer: Valuer, leftover: Int) {
 private fun TimingView(timing: TicketTiming, label: String, game: Game, valuer: Valuer) {
     val nowName = game.name(timing.nowRoll.catId)
     if (timing.rollsFirst == 0) {
+        CatStrip(listOf(timing.nowRoll.catId), game)
         Text("Use it now: you get $nowName" + if (valuer.isOwned(timing.nowRoll.catId)) " (a duplicate; nothing better is within reach of your tickets)." else " (new).", fontWeight = FontWeight.Bold)
     } else {
+        CatStrip(listOf(timing.nowRoll.catId, timing.roll.catId), game, captions = listOf("Now", "If you wait"))
         Text("Wait: using it now gives $nowName" + if (valuer.isOwned(timing.nowRoll.catId)) ", which you own." else ".")
         Text("After ${plural(timing.rollsFirst, "more Rare Ticket roll")} (see the Rare Tickets plan), the $label gives ${game.name(timing.roll.catId)}.", fontWeight = FontWeight.Bold)
     }
@@ -209,7 +216,10 @@ private fun TargetCard(
             Text("Pick a cat and TrackCats finds the cheapest way to reach it.")
         } else {
             val routes = remember(target, active, upcoming, seed, last) { Planner.findTarget(active, upcoming, seed, last, target) }
-            Text(game.name(target), fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                CatIcon(target, game, width = 72.dp)
+                Text(game.name(target), style = MaterialTheme.typography.titleMedium)
+            }
             if (routes.isEmpty()) {
                 val onAny = (active + upcoming).any { it.contains(target) }
                 Text(

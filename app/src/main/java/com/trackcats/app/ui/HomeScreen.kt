@@ -1,5 +1,8 @@
 package com.trackcats.app.ui
 
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -94,7 +97,7 @@ fun HomeScreen(vm: AppVm, onFindSeed: () -> Unit, onMismatch: (EventInfo) -> Uni
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        item { BannerHeader(event, today) { picking = true } }
+        item { BannerHeader(event, game, today) { picking = true } }
         if (!user.seedConfirmed) item {
             SectionCard(highlight = true) {
                 Text("Seed not confirmed yet", fontWeight = FontWeight.Bold)
@@ -102,13 +105,13 @@ fun HomeScreen(vm: AppVm, onFindSeed: () -> Unit, onMismatch: (EventInfo) -> Uni
             }
         }
         item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Your next rolls", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                ScreenTitle("Your next rolls", Modifier.weight(1f))
                 Button(onClick = { rolling = true }) { Text("I rolled") }
             }
         }
         itemsIndexed(rolls, key = { i, _ -> "roll-$i" }) { i, roll ->
-            RollRow(i + 1, roll, game, valuer, user.advanced)
+            RollCard(Modifier.animateItem()) { RollRow(i + 1, roll, game, valuer, user.advanced) }
         }
         item {
             if (count < 200) OutlinedButton(onClick = { count = (count + 30).coerceAtMost(200) }, modifier = Modifier.fillMaxWidth()) {
@@ -120,7 +123,7 @@ fun HomeScreen(vm: AppVm, onFindSeed: () -> Unit, onMismatch: (EventInfo) -> Uni
     }
 
     if (picking) {
-        BannerPickerDialog("Choose a banner", bannerGroups(game, today), today, onPick = { e ->
+        BannerPickerDialog("Choose a banner", game, bannerGroups(game, today), today, onPick = { e ->
             vm.update { it.copy(selectedEvent = e.k) }
             picking = false
         }, onDismiss = { picking = false })
@@ -139,9 +142,19 @@ fun HomeScreen(vm: AppVm, onFindSeed: () -> Unit, onMismatch: (EventInfo) -> Uni
     }
 }
 
+/** One predicted roll in its own slim card. */
+@Composable
+fun RollCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Surface(
+        modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shadowElevation = 2.dp,
+    ) { Box(Modifier.padding(4.dp)) { content() } }
+}
+
 @Composable
 private fun NoSeedYet(onFindSeed: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ScreenTitle("Welcome!")
         SectionCard(title = "Let's find your seed", highlight = true) {
             Text("Your account has a hidden number, the seed, that decides every rare gacha roll in advance. Once TrackCats knows it, it can show you exactly which cats you will get next.")
             Text("You need your last 10 rolls from one banner, in order. If you don't remember them, roll 10 times now and note each cat.")
@@ -161,7 +174,14 @@ private fun GuaranteedPreview(pool: Pool, draw: List<Roll>, game: Game, valuer: 
     val uber = draw.last()
     val after = remember(draw) { Roller.rollOne(pool, uber.seedAfter, uber.catId) }
     SectionCard(title = if (pool.guaranteedRolls == 15) "If you finish the step-up now" else "If you do the guaranteed 11-draw now") {
-        Text("Guaranteed uber: ${game.name(uber.catId)}" + if (valuer.isOwned(uber.catId)) " (you own it)" else " (new)", fontWeight = FontWeight.Bold)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            CatIcon(uber.catId, game, width = 84.dp)
+            Column {
+                Text("Guaranteed uber", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(game.name(uber.catId), style = MaterialTheme.typography.titleMedium, color = rarityColor(Rarity.UBER))
+                Text(if (valuer.isOwned(uber.catId)) "You own it" else "New for you", fontWeight = FontWeight.Bold)
+            }
+        }
         val good = draw.dropLast(1).filter { valuer.isGood(it) }
         Text(
             if (good.isEmpty()) "The ${draw.size - 1} rolls before it are the same as rolls 1 to ${draw.size - 1} above, with nothing special among them."
@@ -169,7 +189,7 @@ private fun GuaranteedPreview(pool: Pool, draw: List<Roll>, game: Game, valuer: 
         )
         Text("Afterwards your next single roll here would be ${game.name(after.catId)}.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         TextButton(onClick = { open = !open }) { Text(if (open) "Hide the full draw" else "Show the full draw") }
-        if (open) draw.forEachIndexed { i, roll -> RollRow(i + 1, roll, game, valuer, user.advanced) }
+        Expandable(open) { draw.forEachIndexed { i, roll -> RollRow(i + 1, roll, game, valuer, user.advanced) } }
     }
 }
 

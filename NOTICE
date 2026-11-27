@@ -14,3 +14,10 @@ The ported parts are app/src/main/java/com/trackcats/app/core/Engine.kt and Seed
 Banner and cat data (app/src/main/assets/gamedata.json, and the file the app downloads at
 runtime) are derived from that project's build/bc-en.yaml. Cat names, banner names and game
 data belong to PONOS.
+
+Cat icons and banner art are not included in this repository or in the app package. The app
+downloads them at runtime from the Battle Cats Wiki (https://battlecats.miraheze.org). The artwork
+belongs to PONOS.
+
+The display font is Lilita One by Juan Montoreano, licensed under the SIL Open Font License 1.1
+(licenses/LilitaOne-OFL.txt).

@@ -1,5 +1,13 @@
 package com.trackcats.app.ui
 
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.AnimatedContent
+import com.trackcats.app.core.Game
+import com.trackcats.app.BuildConfig
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
@@ -44,7 +52,7 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun MoreScreen(vm: AppVm, onFindSeed: () -> Unit, onResync: () -> Unit, onHistory: () -> Unit, onGlossary: () -> Unit, onTutorial: () -> Unit) {
+fun MoreScreen(vm: AppVm, onFindSeed: () -> Unit, onResync: () -> Unit, onHistory: () -> Unit, onGlossary: () -> Unit, onTutorial: () -> Unit, onWhatsNew: () -> Unit) {
     val user by vm.user.collectAsStateWithLifecycle()
     val game by vm.game.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -68,14 +76,14 @@ fun MoreScreen(vm: AppVm, onFindSeed: () -> Unit, onResync: () -> Unit, onHistor
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("More", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        ScreenTitle("More")
         (notice ?: vm.message)?.let { SectionCard(highlight = true) { Text(it) } }
 
         SectionCard(title = "My seed") {
             val seed = user.seed
             if (seed == null) Text("No seed saved yet.")
             else {
-                SelectionContainer { Text("Seed: $seed", fontWeight = FontWeight.Bold) }
+                SelectionContainer { Text("Seed: $seed", style = MaterialTheme.typography.titleMedium) }
                 Text(if (user.seedConfirmed) "Confirmed by a matching roll." else "Not confirmed yet. Roll once and confirm on the Rolls tab.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Button(onClick = onFindSeed, modifier = Modifier.fillMaxWidth()) { Text(if (seed == null) "Find my seed" else "Find my seed again") }
@@ -138,9 +146,11 @@ fun MoreScreen(vm: AppVm, onFindSeed: () -> Unit, onResync: () -> Unit, onHistor
         }
 
         SectionCard(title = "About") {
-            Text("TrackCats 1.0.0")
+            Text("TrackCats ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleMedium)
+            OutlinedButton(onClick = onWhatsNew, modifier = Modifier.fillMaxWidth()) { Text("What's new") }
             Text("An unofficial fan tool. Not affiliated with or endorsed by PONOS. Seed tracking reads nothing from your game and changes nothing in it; it only does maths on rolls you enter.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("The roll algorithm and game data come from battle-cats-rolls by godfat (Apache License 2.0).", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Cat and banner pictures are downloaded from the community-run Battle Cats Wiki and kept on this phone; they belong to PONOS. Title lettering is Lilita One (SIL Open Font License).", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 
@@ -162,19 +172,19 @@ fun HistoryScreen(vm: AppVm, onDone: () -> Unit) {
     val user by vm.user.collectAsStateWithLifecycle()
     val game by vm.game.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Roll history", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        ScreenTitle("Roll history")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(enabled = user.history.isNotEmpty(), onClick = { vm.undoLast() }) { Text("Undo latest entry") }
             OutlinedButton(onClick = onDone) { Text("Back") }
         }
         if (user.history.isEmpty()) Text("Nothing yet. Entries appear when you save a seed or confirm rolls.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        for (entry in user.history.asReversed().take(100)) HistoryRow(entry) { game.name(it) }
+        for (entry in user.history.asReversed().take(100)) HistoryRow(entry, game)
         if (user.history.size > 100) Text("Showing the latest 100 entries.", color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
-private fun HistoryRow(entry: HistoryEntry, name: (Int) -> String) {
+private fun HistoryRow(entry: HistoryEntry, game: Game) {
     val title = when (entry.kind) {
         "setup" -> "Seed found"
         "manual" -> "Seed entered by hand"
@@ -185,7 +195,7 @@ private fun HistoryRow(entry: HistoryEntry, name: (Int) -> String) {
     SectionCard {
         Text("$title · ${timeFormat.format(Date(entry.time))}", fontWeight = FontWeight.Bold)
         if (entry.banner.isNotEmpty()) Text(Alerts.shortName(entry.banner), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (entry.cats.isNotEmpty()) Text(entry.cats.joinToString(", ") { name(it) })
+        if (entry.cats.isNotEmpty()) CatStrip(entry.cats, game)
     }
 }
 
@@ -205,7 +215,7 @@ private val glossary = listOf(
 @Composable
 fun GlossaryScreen(onDone: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("What do these words mean?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        ScreenTitle("What do these words mean?")
         for ((term, meaning) in glossary) SectionCard(title = term) { Text(meaning) }
         OutlinedButton(onClick = onDone) { Text("Back") }
     }
@@ -222,13 +232,32 @@ private val tutorial = listOf(
 fun TutorialScreen(onDone: () -> Unit) {
     var page by remember { mutableStateOf(0) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Welcome to TrackCats", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        ScreenTitle("Welcome to TrackCats")
         Text("${page + 1} of ${tutorial.size}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        SectionCard(title = tutorial[page].first, highlight = true) { Text(tutorial[page].second, style = MaterialTheme.typography.bodyLarge) }
+        AnimatedContent(page, label = "tutorial", transitionSpec = {
+            val dir = if (targetState > initialState) 1 else -1
+            (slideInHorizontally { dir * it / 3 } + fadeIn()) togetherWith (slideOutHorizontally { -dir * it / 3 } + fadeOut())
+        }) { p ->
+            SectionCard(title = tutorial[p].first, highlight = true) { Text(tutorial[p].second, style = MaterialTheme.typography.bodyLarge) }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (page > 0) OutlinedButton(onClick = { page-- }) { Text("Back") }
             Button(onClick = { if (page < tutorial.size - 1) page++ else onDone() }) { Text(if (page < tutorial.size - 1) "Next" else "Get started") }
             if (page < tutorial.size - 1) TextButton(onClick = onDone) { Text("Skip") }
         }
+    }
+}
+
+/** Update log: what changed in each version, newest first. */
+@Composable
+fun WhatsNewScreen(onDone: () -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        ScreenTitle("What's new")
+        for (release in Changelog.releases) {
+            SectionCard(title = "Version ${release.name} · ${prettyDate(release.date)}", highlight = release === Changelog.latest) {
+                for (change in release.changes) Text("• $change")
+            }
+        }
+        OutlinedButton(onClick = onDone) { Text("Back") }
     }
 }

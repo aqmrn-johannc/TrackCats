@@ -18,6 +18,9 @@ changes nothing in it; it only does maths on rolls you enter.
 - **Alerts**: a background check about twice a day for new banners and wishlist cats close on your path.
 - **Advanced view**: the classic A/B track table, for comparing with other trackers.
 - **Backup**: save and restore everything as one file.
+- **Pictures**: cat icons and banner art, downloaded once and kept on the phone.
+
+What changed in each version is in [CHANGELOG.md](CHANGELOG.md).
 
 Covers the rare gacha only (Rare, Platinum and Legend Tickets and Cat Food rolls share one seed).
 
@@ -31,11 +34,16 @@ to allow installing from that source.
 Requires JDK 17 and the Android SDK (platform 35).
 
 ```
-gradlew.bat :app:assembleDebug
+gradlew.bat :app:assembleRelease
 gradlew.bat :app:testDebugUnitTest
 ```
 
-The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+The APK is written to `app/build/outputs/apk/release/app-release.apk`. The release build is optimised
+and signed with the build machine's debug key, so updates must be built on the same machine to
+install over an existing copy.
+
+To render the main screens to PNG files on the PC for a visual check, set `TRACKCATS_SHOTS` to an
+output folder before running the tests.
 
 ## Data
 
@@ -47,8 +55,21 @@ To regenerate the bundled snapshot:
 python tools/convert_data.py refdata/bc-en.yaml app/src/main/assets/gamedata.json
 ```
 
+## Pictures
+
+No artwork is stored in this repository or in the APK. The app downloads cat icons and banner art
+from the community-run [Battle Cats Wiki](https://battlecats.miraheze.org) and caches them on the
+phone. `app/src/main/assets/banner_art.json` only lists which wiki file belongs to which banner;
+regenerate it with:
+
+```
+python tools/make_banner_map.py app/src/main/assets/gamedata.json app/src/main/assets/banner_art.json
+```
+
 ## Credits
 
 The roll algorithm and seed search are a Kotlin port of
 [battle-cats-rolls](https://gitlab.com/godfat/battle-cats-rolls) by godfat, Apache License 2.0.
 See `NOTICE`. Cat names, banner names and game data belong to PONOS.
+Title lettering is [Lilita One](https://fonts.google.com/specimen/Lilita+One), SIL Open Font License
+(`licenses/LilitaOne-OFL.txt`).

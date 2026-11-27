@@ -56,13 +56,9 @@ fun CatsScreen(vm: AppVm) {
                 }
         }
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         item {
-            Text("My cats", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(
-                "Tick the cats you own so TrackCats knows which rolls are new. Tap the heart to put a cat on your wishlist. You own ${user.owned.count { it in game.data.cats }} of ${all.size}.",
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            ScreenTitle("My cats", subtitle = "Tick the cats you own so TrackCats knows which rolls are new. Tap the heart to put a cat on your wishlist. You own ${user.owned.count { it in game.data.cats }} of ${all.size}.")
         }
         item { SearchField(query, { query = it }, "Search cats", Modifier.padding(top = 8.dp)) }
         item {
@@ -80,9 +76,11 @@ fun CatsScreen(vm: AppVm) {
         items(shown, key = { it }) { id ->
             val owned = id in user.owned
             val wanted = id in user.wishlist
+            RollCard(Modifier.animateItem()) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = owned, onCheckedChange = { on -> vm.update { u -> u.copy(owned = if (on) u.owned + id else u.owned - id) } })
-                Column(Modifier.weight(1f)) {
+                CatIcon(id, game)
+                Column(Modifier.weight(1f).padding(start = 10.dp)) {
                     Text(game.name(id), maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         val r = game.rarityIdx(id)
@@ -98,6 +96,7 @@ fun CatsScreen(vm: AppVm) {
                         tint = if (wanted) rarityColor(Rarity.UBER) else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
             }
         }
     }

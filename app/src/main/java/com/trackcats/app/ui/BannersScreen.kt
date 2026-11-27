@@ -1,5 +1,9 @@
 package com.trackcats.app.ui
 
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -55,15 +59,11 @@ fun BannersScreen(vm: AppVm, onOpenBanner: (EventInfo) -> Unit) {
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
-            Text("Compare banners", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(
-                "The same seed gives different cats on each banner. This shows what your next rolls would be on every one.",
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            ScreenTitle("Compare banners", subtitle = "The same seed gives different cats on each banner. This shows what your next rolls would be on every one.")
         }
         if (seed == null) {
             item { SectionCard(highlight = true) { Text("Find your seed first (Rolls tab) to see forecasts here.") } }
-            items(active, key = { "plain-${it.k}" }) { e -> PlainBannerCard(e, today) }
+            items(active, key = { "plain-${it.k}" }) { e -> PlainBannerCard(e, game, today) }
             return@LazyColumn
         }
         item {
@@ -79,7 +79,8 @@ fun BannersScreen(vm: AppVm, onOpenBanner: (EventInfo) -> Unit) {
                     best.good.isEmpty() -> Text("None of today's banners gives you a new uber, legend or wishlist cat in your next $count rolls. Holding your tickets is the better move.")
                     else -> {
                         Text("Best use of your next $count rolls: ${bannerTitle(best.event)}", fontWeight = FontWeight.Bold)
-                        Text(scoreSummary(best, game))
+                        BannerArt(best.event, game)
+                        GoodCats(best, game)
                     }
                 }
                 val later = upcomingScores.firstOrNull()
@@ -88,33 +89,34 @@ fun BannersScreen(vm: AppVm, onOpenBanner: (EventInfo) -> Unit) {
                 }
             }
         }
-        if (activeScores.isNotEmpty()) item { Text("Open now", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
-        items(activeScores, key = { "a-${it.event.k}" }) { s -> ScoredBannerCard(s, game, today, onOpenBanner) }
-        if (upcomingScores.isNotEmpty()) item { Text("Coming up", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
-        items(upcomingScores, key = { "u-${it.event.k}" }) { s -> ScoredBannerCard(s, game, today, onOpenBanner) }
+        if (activeScores.isNotEmpty()) item(key = "h-open") { GroupLabel("Open now", Modifier.animateItem()) }
+        items(activeScores, key = { "a-${it.event.k}" }) { s -> ScoredBannerCard(s, game, today, onOpenBanner, Modifier.animateItem()) }
+        if (upcomingScores.isNotEmpty()) item(key = "h-up") { GroupLabel("Coming up", Modifier.animateItem()) }
+        items(upcomingScores, key = { "u-${it.event.k}" }) { s -> ScoredBannerCard(s, game, today, onOpenBanner, Modifier.animateItem()) }
     }
 }
 
 @Composable
-private fun ScoredBannerCard(score: BannerScore, game: Game, today: LocalDate, onOpen: (EventInfo) -> Unit) {
-    SectionCard(highlight = false) {
-        Text(bannerTitle(score.event), fontWeight = FontWeight.Bold)
-        Text(
-            listOfNotNull(bannerWhen(score.event, today), bannerPerk(score.event)).joinToString(" · "),
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(scoreSummary(score, game), color = if (score.good.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
-        TextButton(onClick = { onOpen(score.event) }) { Text("See the rolls") }
+private fun ScoredBannerCard(score: BannerScore, game: Game, today: LocalDate, onOpen: (EventInfo) -> Unit, modifier: Modifier = Modifier) {
+    SectionCard(modifier.clip(RoundedCornerShape(20.dp)).clickable { onOpen(score.event) }) {
+        BannerArt(score.event, game)
+        BannerLines(score.event, today)
+        GoodCats(score, game)
+        Text("See the rolls", Modifier.align(Alignment.End), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
     }
 }
 
+/** The notable cats in a banner's next rolls, as pictures with the roll number under each. */
 @Composable
-private fun PlainBannerCard(event: EventInfo, today: LocalDate) {
+private fun GoodCats(score: BannerScore, game: Game) {
+    if (score.good.isEmpty()) Text("Nothing special in these rolls.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    else CatStrip(score.good.map { it.catId }, game, captions = score.good.map { "Roll ${score.rolls.indexOf(it) + 1}" })
+}
+
+@Composable
+private fun PlainBannerCard(event: EventInfo, game: Game, today: LocalDate) {
     SectionCard {
-        Text(bannerTitle(event), fontWeight = FontWeight.Bold)
-        Text(
-            listOfNotNull(bannerWhen(event, today), bannerPerk(event)).joinToString(" · "),
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        BannerArt(event, game)
+        BannerLines(event, today)
     }
 }
